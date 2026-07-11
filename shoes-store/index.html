@@ -12,12 +12,12 @@
 <body>
     <header class="header">
         <nav class="navbar">
-            <a href="#" class="nav-logo">SHOES</a>
+            <a href="#" class="nav-logo">SHOES Name</a>
             <ul class="nav-menu">
                 <li class="nav-item"><a href="#" class="nav-link">Home</a></li>
-                <li class="nav-item"><a href="#" class="nav-link">Men</a></li>
-                <li class="nav-item"><a href="#" class="nav-link">Women</a></li>
-                <li class="nav-item"><a href="#" class="nav-link">Sale</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Store</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">About</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">Contact</a></li>
             </ul>
             <div class="nav-icons">
                 <a href="#"><i class="fas fa-search"></i></a>
@@ -29,47 +29,54 @@
 
     <main>
         <section class="hero">
-            <div class="hero-content">
-                <h1>Step Up Your Style</h1>
-                <p>Discover our new collection of premium shoes. Comfort and style in every step.</p>
-                <a href="#" class="btn">Shop Now</a>
+            <div class="mySlides">
+                <div class="numbertext">1 / 4</div>
+                <img src="assets/pexels-chipi1189-35618113.webp" style="width:100%">
+            </div>
+
+            <div class="mySlides">
+                <div class="numbertext">2 / 4</div>
+                <img src="assets/pexels-indigentesce-8979069.webp" style="width:100%">
+            </div>
+
+            <div class="mySlides">
+                <div class="numbertext">3 / 4</div>
+                <img src="assets/pexels-pedrofurtadoo-29096401.webp" style="width:100%">
+            </div>
+                
+            <div class="mySlides">
+                <div class="numbertext">4 / 4</div>
+                <img src="assets/pexels-zeleboba-26893166.webp" style="width:100%">
+            </div>
+                
+            <a class="prev" onclick="plusSlides(-1)">❮</a>
+            <a class="next" onclick="plusSlides(1)">❯</a>
+
+            <div class="caption">
+                <p id="caption"></p>
+            </div>
+
+            <div class="row">
+                <div class="column">
+                    <img class="action cursor" src="assets/pexels-chipi1189-35618113.webp" style="width:100%" onclick="currentSlide(1)" alt="Red One">
+                </div>
+                <div class="column">
+                    <img class="action cursor" src="assets/pexels-indigentesce-8979069.webp" style="width:100%" onclick="currentSlide(2)" alt="White One">
+                </div>
+                <div class="column">
+                    <img class="action cursor" src="assets/pexels-pedrofurtadoo-29096401.webp" style="width:100%" onclick="currentSlide(3)" alt="Black One">
+                </div>
+                <div class="column">
+                    <img class="action cursor" src="assets/pexels-zeleboba-26893166.webp" style="width:100%" onclick="currentSlide(4)" alt="Black-White One">
+                </div>
             </div>
         </section>
 
-        <section class="featured-products">
-            <h2>Featured Products</h2>
-            <div class="products-grid">
-                <!-- Product Card 1 -->
-                <div class="product-card">
-                    <img src="https://via.placeholder.com/300x200" alt="Shoe 1">
-                    <h3>Classic Runner</h3>
-                    <p class="price">$120.00</p>
-                </div>
-                <!-- Product Card 2 -->
-                <div class="product-card">
-                    <img src="https://via.placeholder.com/300x200" alt="Shoe 2">
-                    <h3>Urban Walker</h3>
-                    <p class="price">$95.00</p>
-                </div>
-                <!-- Product Card 3 -->
-                <div class="product-card">
-                    <img src="https://via.placeholder.com/300x200" alt="Shoe 3">
-                    <h3>Elegant Loafer</h3>
-                    <p class="price">$150.00</p>
-                </div>
-                <!-- Product Card 4 -->
-                <div class="product-card">
-                    <img src="https://via.placeholder.com/300x200" alt="Shoe 4">
-                    <h3>Sport Sneaker</h3>
-                    <p class="price">$110.00</p>
-                </div>
-            </div>
-        </section>
     </main>
 
     <footer class="footer">
         <div class="footer-content">
-            <p>&copy; 2024 SHOES Store. All rights reserved.</p>
+            <p>&copy; 2026 SHOES Store. All rights reserved.</p>
             <div class="social-links">
                 <a href="#"><i class="fab fa-facebook-f"></i></a>
                 <a href="#"><i class="fab fa-twitter"></i></a>
