@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_RAPIDAPI_KEY=${VITE_RAPIDAPI_KEY}
+      - VITE_COUNTRY_CODE=us
