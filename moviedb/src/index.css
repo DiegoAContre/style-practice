@@ -269,8 +269,8 @@ a:hover {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
-  padding: 1.5rem;
-  flex: 1;
+  padding: 2rem;
+  flex: 0.15;
 }
 
 .movie-grid-empty {
@@ -289,13 +289,14 @@ a:hover {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 1.25rem;
+  padding: 2rem;
   cursor: pointer;
   transition: all 0.3s ease;
   animation: card-fade-in 0.4s ease both;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 150px;
 }
 
 .movie-card:hover {
