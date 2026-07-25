@@ -11,6 +11,3 @@ React app for searching and browsing movies using [The Movie Database (TMDB)](ht
 - Search for movies
 - View movie details
 - Save favorites (local context)
-
-### [shoes-store](./shoes-store)
-Static e-commerce landing page for a shoe store. Pure HTML, CSS and JavaScript.
