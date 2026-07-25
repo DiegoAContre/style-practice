@@ -9,7 +9,7 @@ export default function MovieDetailPage() {
 
   if (!movie) {
     return (
-      <div style={{ padding: '2rem' }}>
+      <div className="detail-empty">
         <p>No movie selected.</p>
         <button onClick={() => navigate('/')}>Go back</button>
       </div>
@@ -22,27 +22,44 @@ export default function MovieDetailPage() {
     { key: 'buy', label: 'Buy' },
   ]
 
+  const handleFavorite = () => {
+    fav ? removeFavorite(movie) : addFavorite(movie)
+  }
+
   return (
-    <div style={{ padding: '2rem' }}>
-      <button onClick={() => navigate('/')}>Back</button>
-      <h1>
-        {movie.title} ({movie.year})
-      </h1>
-      <button onClick={() => (fav ? removeFavorite(movie) : addFavorite(movie))}>
-        {fav ? 'Remove from Favorites' : 'Add to Favorites'}
+    <div className="detail-page">
+      <button className="detail-back" onClick={() => navigate('/')}>
+        Back
       </button>
-      <hr />
+      <div className="detail-header">
+        <h1 className="detail-title">
+          {movie.title} <span style={{ opacity: 0.5, fontWeight: 400 }}>({movie.year})</span>
+        </h1>
+        <button
+          className={`detail-fav-btn${fav ? ' active' : ''}`}
+          onClick={handleFavorite}
+        >
+          {fav ? '♥ Remove' : '♡ Add to Favorites'}
+        </button>
+      </div>
       {categories.map(({ key, label }) => {
         const items = movie.options?.[key]
         if (!items || items.length === 0) return null
         return (
-          <div key={key} style={{ marginBottom: '1.5rem' }}>
+          <div className="detail-section" key={key}>
             <h2>{label}</h2>
             {items.map((opt, i) => (
-              <div key={i} style={{ margin: '0.75rem 0', padding: '0.5rem', border: '1px solid #eee', borderRadius: '4px' }}>
-                <strong>{opt.provider}</strong> - {opt.pricing}
-                <br />
-                <a href={opt.providerUrl} target="_blank" rel="noopener noreferrer">
+              <div className="detail-option" key={i}>
+                <div className="detail-option-info">
+                  <span className="detail-option-provider">{opt.provider}</span>
+                  <span className="detail-option-pricing">{opt.pricing}</span>
+                </div>
+                <a
+                  className="detail-option-link"
+                  href={opt.providerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {opt.option === 'Stream' ? 'Watch now' : opt.option === 'Rent' ? 'Rent now' : 'Buy now'}
                 </a>
               </div>

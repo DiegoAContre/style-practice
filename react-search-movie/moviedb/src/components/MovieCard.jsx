@@ -24,28 +24,26 @@ export default function MovieCard({ movie }) {
   }
 
   return (
-    <div
-      onClick={handleClick}
-      style={{
-        cursor: 'pointer',
-        border: '1px solid #ccc',
-        borderRadius: '8px',
-        padding: '1rem',
-        margin: '0.5rem',
-        width: '280px',
-      }}
-    >
-      <h3>
-        {movie.title} ({movie.year})
+    <div className="movie-card" onClick={handleClick}>
+      <button
+        className={`movie-card-fav${fav ? ' active' : ''}`}
+        onClick={handleFavorite}
+        aria-label={fav ? 'Remove from favorites' : 'Add to favorites'}
+      >
+        {fav ? '♥' : '♡'}
+      </button>
+      <h3 className="movie-card-title">
+        {movie.title} <span className="movie-card-year">({movie.year})</span>
       </h3>
       {firstOption ? (
-        <p>
-          {firstOption.provider} - {firstOption.pricing}
+        <p className="movie-card-info">
+          {firstOption.provider} — {firstOption.pricing}
         </p>
       ) : (
-        <p style={{ color: '#888' }}>No streaming info</p>
+        <p className="movie-card-info">
+          <em>No streaming info</em>
+        </p>
       )}
-      <button onClick={handleFavorite}>{fav ? 'Remove Favorite' : 'Add Favorite'}</button>
     </div>
   )
 }

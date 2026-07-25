@@ -1,10 +1,21 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 export default function Navbar() {
+  const { pathname } = useLocation()
+
   return (
-    <nav style={{ display: 'flex', gap: '1rem', padding: '1rem', borderBottom: '1px solid #ccc' }}>
-      <Link to="/">Search</Link>
-      <Link to="/favorites">Favorites</Link>
+    <nav className="navbar">
+      <Link to="/" className="navbar-brand">
+        Movie<span>DB</span>
+      </Link>
+      <div className="navbar-links">
+        <Link to="/" className={pathname === '/' ? 'active' : ''}>
+          Search
+        </Link>
+        <Link to="/favorites" className={pathname === '/favorites' ? 'active' : ''}>
+          Favorites
+        </Link>
+      </div>
     </nav>
   )
 }
