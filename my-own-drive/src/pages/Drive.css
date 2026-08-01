@@ -1,0 +1,101 @@
+.drive-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fafbfc;
+}
+
+.drive-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid #e3e6ea;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  flex-wrap: wrap;
+}
+
+.breadcrumb-crumb {
+  background: none;
+  border: none;
+  color: #2b6cb0;
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.95rem;
+  border-radius: 4px;
+}
+
+.breadcrumb-crumb:hover { background: #eef3f9; }
+
+.breadcrumb-sep { color: #999; margin: 0 0.1rem; }
+
+.drive-signout {
+  background: none;
+  border: 1px solid #d0d4d9;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.drive-signout:hover { background: #f0f2f5; }
+
+.drive-header-actions { display: flex; gap: 0.5rem; }
+
+.drive-main {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.filelist {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.filelist-loading,
+.filelist-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.filelist-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 120px 140px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-bottom: 1px solid #f0f2f5;
+  background: #fff;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+}
+
+.filelist-row:last-child { border-bottom: none; }
+.filelist-row:hover { background: #f7f9fc; }
+.filelist-row-file { cursor: default; }
+
+.filelist-icon { font-size: 1.15rem; }
+.filelist-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filelist-meta, .filelist-date { color: #777; font-size: 0.85rem; }

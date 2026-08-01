@@ -1,25 +1,32 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import RequireAuth from './components/RequireAuth'
+import RequireGuest from './components/RequireGuest'
+import Login from './pages/Login'
+import Drive from './pages/Drive'
+import Profile from './pages/Profile'
 
-function App() {
+export default function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload. :D
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/drive" replace />} />
+          <Route
+            path="/login"
+            element={<RequireGuest><Login /></RequireGuest>}
+          />
+          <Route
+            path="/profile"
+            element={<RequireAuth requireUsername={false}><Profile /></RequireAuth>}
+          />
+          <Route
+            path="/drive"
+            element={<RequireAuth><Drive /></RequireAuth>}
+          />
+          <Route path="*" element={<Navigate to="/drive" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  )
 }
-
-export default App;
