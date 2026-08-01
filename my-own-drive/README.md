@@ -1,70 +1,76 @@
-# Getting Started with Create React App
+# my-own-drive
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Personal cloud storage app (Google Drive–like). React (Create React App) +
+Supabase (database, storage, auth). Runs locally in Docker (dev) and deploys to
+Vercel (prod) as a plain CRA build.
 
-## Available Scripts
+## Stack
+- **Frontend**: React 19, React Router v7 (`react-router-dom`)
+- **Backend**: Supabase (Postgres + Auth + Storage)
+- **Dev**: Docker (`node:22-alpine`, hot reload)
+- **Prod**: Vercel (static CRA build)
 
-In the project directory, you can run:
+## Setup
 
-### `npm start`
+### 1. Supabase project
+1. Create a project at [supabase.com](https://supabase.com).
+2. Dashboard > Storage > New bucket → name it `drive-files`, set **Private**.
+3. Dashboard > SQL Editor → paste `supabase/schema.sql` > Run. The file is
+   idempotent (drop-policy-then-create), safe to re-run.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 2. Environment
+Copy `.env.local.example` to `.env.local` and fill in your Supabase credentials:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```
+REACT_APP_SUPABASE_URL=<your project URL>
+REACT_APP_SUPABASE_ANON_KEY=<your publishable/anon key>
+```
 
-### `npm test`
+> Use the **publishable/anon** key, never the service-role key (it bypasses RLS).
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 3. Run
+```bash
+# with Docker (recommended for local dev)
+docker compose up -d --build            # http://localhost:3000
 
-### `npm run build`
+# or bare npm
+npm install
+npm start                               # http://localhost:3000
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+After adding a dependency, drop the stale container volume and rebuild:
+```bash
+docker compose down -v && docker compose up -d --build
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Scripts
+- `npm start` — dev server (hot reload)
+- `npm test` — Jest watch. Single test: `npm test -- -t "renders"`
+- `npm run build` — production build to `build/`
+- No standalone lint/typecheck; ESLint (`react-app`, `react-app/jest`) runs via
+  `react-scripts` and surfaces in the dev console. Do not eject.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Features
+- Email + password auth (Supabase Auth); username is unique and set at signup.
+- Profile page: edit username, avatar URL, change password.
+- Onboarding gate: signed-in users without a username are redirected to the
+  profile page until they set one.
+- Read-only drive view: lists your folders and files by owner, with breadcrumb
+  navigation. Upload, create, rename, delete, and sharing are planned.
 
-### `npm run eject`
+## Schema
+- `profiles` (1:1 with `auth.users`): `username` (UNIQUE), `avatar_url`.
+  A `handle_new_user` trigger inserts a profile row on signup, copying
+  `username` from `raw_user_meta_data`.
+- `folders`: self-referencing `parent_folder_id` for a nested tree.
+- `files`: metadata rows; blobs live in the `drive-files` Storage bucket at
+  `{owner_id}/{file_id}/{name}`.
+- `shared_items`: one row per (item, recipient) with `view`/`edit` permission.
+- Row Level Security is enabled on all tables; owners CRUD their own rows,
+  shared recipients get read access via `shared_items`.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+See `supabase/schema.sql` for the full, re-runnable schema + RLS + storage policies.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Deploy (Vercel)
+Plain CRA build, auto-detected. Set `REACT_APP_SUPABASE_URL` and
+`REACT_APP_SUPABASE_ANON_KEY` in the Vercel project env. No `vercel.json` needed.
