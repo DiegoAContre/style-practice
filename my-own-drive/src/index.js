@@ -3,6 +3,16 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { supabase } from './lib/supabaseClient';
+
+// ponytail: one-time connection check on boot, remove when wiring real auth
+supabase
+  .from('profiles')
+  .select('id', { count: 'exact', head: true })
+  .then(({ count, error }) => {
+    if (error) console.error('[supabase] connection failed:', error.message);
+    else console.log('[supabase] connected OK — profiles count:', count);
+  });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
