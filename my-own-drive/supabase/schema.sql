@@ -89,17 +89,12 @@ create policy "profiles are updatable by owner"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- folders: full CRUD by owner; read access if shared with me
-create policy "folders select own or shared"
+-- folders: owner-only CRUD. Sharing not built yet; when it lands, add a
+-- security-definer function folder_is_shared_with_me(p uuid) and reference it
+-- here to avoid RLS recursion (files ↔ shared_items ↔ folders).
+create policy "folders select own"
   on public.folders for select
-  using (
-    auth.uid() = owner_id
-    or exists (
-      select 1 from public.shared_items s
-      where s.item_type = 'folder' and s.item_id = folders.id
-        and s.shared_with_user_id = auth.uid()
-    )
-  );
+  using (auth.uid() = owner_id);
 
 create policy "folders insert by owner"
   on public.folders for insert
@@ -114,17 +109,12 @@ create policy "folders delete by owner"
   on public.folders for delete
   using (auth.uid() = owner_id);
 
--- files: full CRUD by owner; read access if shared with me
-create policy "files select own or shared"
+-- files: owner-only CRUD. Sharing not built yet; when it lands, add a
+-- security-definer function file_is_shared_with_me(p uuid) and reference it
+-- here to avoid RLS recursion (files ↔ shared_items ↔ folders).
+create policy "files select own"
   on public.files for select
-  using (
-    auth.uid() = owner_id
-    or exists (
-      select 1 from public.shared_items s
-      where s.item_type = 'file' and s.item_id = files.id
-        and s.shared_with_user_id = auth.uid()
-    )
-  );
+  using (auth.uid() = owner_id);
 
 create policy "files insert by owner"
   on public.files for insert
@@ -139,23 +129,9 @@ create policy "files delete by owner"
   on public.files for delete
   using (auth.uid() = owner_id);
 
--- shared_items: owner manages shares by listing rows on their items.
---   To gate management by item ownership we keep it simple: any
---   authenticated user can read rows where shared_with_user_id = auth.uid(),
---   and any authenticated user can insert/delete rows for items they own.
-create policy "shared_items select as recipient or owner"
-  on public.shared_items for select
-  using (
-    shared_with_user_id = auth.uid()
-    or exists (
-      select 1 from public.folders f
-        where f.id = shared_items.item_id and f.owner_id = auth.uid()
-      union all
-      select 1 from public.files fl
-        where fl.id = shared_items.item_id and fl.owner_id = auth.uid()
-    )
-  );
-
+-- shared_items: inserts/deletes by the item owner only. No select policy
+-- until sharing is a real feature — keeps RLS non-recursive. When it lands,
+-- add a security-definer function and a select policy that uses it.
 create policy "shared_items insert by item owner"
   on public.shared_items for insert
   with check (
@@ -197,21 +173,11 @@ create policy "drive-files upload own"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
-create policy "drive-files read own or shared"
+create policy "drive-files read own"
   on storage.objects for select
   using (
     bucket_id = 'drive-files'
-    and (
-      (storage.foldername(name))[1] = auth.uid()::text
-      -- read access if the file metadata row is shared with me
-      or exists (
-        select 1 from public.files fl
-        join public.shared_items s
-          on s.item_type = 'file' and s.item_id = fl.id
-        where fl.storage_path = name
-          and s.shared_with_user_id = auth.uid()
-      )
-    )
+    and (storage.foldername(name))[1] = auth.uid()::text
   );
 
 create policy "drive-files update own"

@@ -18,14 +18,38 @@ projects — do not touch them.
 - Client: `src/lib/supabaseClient.js` (exports `supabase`). Throws at import if
   env vars are missing — fail loud, not silent. In jest, `setupTests.js`
   stubs the two vars so tests pass on a fresh clone without `.env.local`.
-- Schema lives in `supabase/schema.sql`; idempotent (drop-policy-then-create +
-  `do $$ if not exists` for the unique constraint), safe to re-run whole.
-  Run in the Supabase SQL editor (Dashboard > SQL Editor). Switch to the
-  `supabase` CLI once the schema starts changing in flight.
+- Schema lives in `supabase/schema.sql` (for fresh projects) and
+  `supabase/fix-policies.sql` (idempotent reconciliation for an already-populated
+  DB). `schema.sql` uses bare `create policy` and will raise `42710` on re-run —
+  run it once. `fix-policies.sql` prefixes every policy with `drop policy if
+  exists` and is safe to re-run. Run both in the Supabase SQL editor
+  (Dashboard > SQL Editor). Switch to the `supabase` CLI once the schema starts
+  changing in flight.
 - Auth keys go in `.env.local` as the **publishable/anon** key
   (`REACT_APP_SUPABASE_ANON_KEY`), never the service-role key.
 - `profiles.username` is **UNIQUE**; a `handle_new_user` trigger auto-inserts a
   profile row on signup and copies `username` from `raw_user_meta_data`.
+- **RLS is enabled on every table.** Select policies are **owner-only**
+  (`auth.uid() = owner_id`) — deliberately no cross-table subquery. Earlier
+  attempts had `files ↔ shared_items ↔ folders` recursion in the select
+  policies, which made PostgREST return 500 on every query. When sharing lands,
+  add `security definer` functions (`file_is_shared_with_me`,
+  `folder_is_shared_with_me`) and reference them in the select policies to
+  avoid recursion. `shared_items` has no select policy yet.
+- Storage bucket `drive-files` is **private**; object paths follow
+  `{owner_id}/{file_id}/{name}`. Storage policies match the owner prefix.
+
+## Drive page (src/pages/Drive.js)
+- Features: upload (multi-file, 50 MB cap), download (signed URL, 60 s),
+  rename metadata-only (storage path keeps `{id}` — blob never moves), delete
+  (removes blob then row). All owner-only via RLS.
+- Rename/delete use the in-page `src/components/Modal.js` (backdrop click /
+  Esc / Cancel dismiss). No `window.prompt` / `window.confirm`.
+- Root-level query gotcha: `folder_id = null` rows don't match `.eq('folder_id', '')`.
+  Branch on `folderId`: use `.is('folder_id', null)` for root, `.eq('folder_id',
+  folderId)` for subfolders. Same for `folders.parent_folder_id`.
+- `load()` surfaces query errors (no silent 500s); `setError` drives the inline
+  `.drive-error` banner.
 
 ## Docker (local dev only)
 - `docker compose up` — React dev server at http://localhost:3000 with hot
