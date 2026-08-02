@@ -3,9 +3,11 @@ export default function FileList({
   files,
   loading,
   onOpenFolder,
-  onDownload,
-  onRename,
-  onDelete,
+  onDownloadFile,
+  onRenameFile,
+  onDeleteFile,
+  onRenameFolder,
+  onDeleteFolder,
 }) {
   if (loading) return <div className="filelist-loading">Loading…</div>
   if (!folders.length && !files.length) {
@@ -15,13 +17,16 @@ export default function FileList({
   return (
     <div className="filelist">
       {folders.map(f => (
-        <button key={f.id} className="filelist-row filelist-row-folder" onClick={() => onOpenFolder(f)}>
+        <div key={f.id} className="filelist-row filelist-row-folder">
           <span className="filelist-icon" aria-hidden>📁</span>
-          <span className="filelist-name">{f.name}</span>
+          <button className="filelist-name filelist-name-button" onClick={() => onOpenFolder(f)}>{f.name}</button>
           <span className="filelist-meta">—</span>
           <span className="filelist-date">{new Date(f.created_at).toLocaleDateString()}</span>
-          <span className="filelist-actions" />
-        </button>
+          <span className="filelist-actions">
+            <button className="filelist-action" title="Rename" onClick={() => onRenameFolder(f)}>✎</button>
+            <button className="filelist-action filelist-action-danger" title="Delete" onClick={() => onDeleteFolder(f)}>🗑</button>
+          </span>
+        </div>
       ))}
       {files.map(f => (
         <div key={f.id} className="filelist-row filelist-row-file">
@@ -30,9 +35,9 @@ export default function FileList({
           <span className="filelist-meta">{f.size ? formatSize(f.size) : '—'}</span>
           <span className="filelist-date">{new Date(f.created_at).toLocaleDateString()}</span>
           <span className="filelist-actions">
-            <button className="filelist-action" title="Download" onClick={() => onDownload(f)}>⬇</button>
-            <button className="filelist-action" title="Rename" onClick={() => onRename(f)}>✎</button>
-            <button className="filelist-action filelist-action-danger" title="Delete" onClick={() => onDelete(f)}>🗑</button>
+            <button className="filelist-action" title="Download" onClick={() => onDownloadFile(f)}>⬇</button>
+            <button className="filelist-action" title="Rename" onClick={() => onRenameFile(f)}>✎</button>
+            <button className="filelist-action filelist-action-danger" title="Delete" onClick={() => onDeleteFile(f)}>🗑</button>
           </span>
         </div>
       ))}

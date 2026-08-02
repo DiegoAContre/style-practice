@@ -13,6 +13,25 @@
   background: #fff;
   border-bottom: 1px solid #e3e6ea;
 }
+.drive-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.drive-up {
+  background: none;
+  border: 1px solid #d0d4d9;
+  border-radius: 6px;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #444;
+  line-height: 1;
+}
+.drive-up:hover:not(:disabled) { background: #f0f2f5; }
+.drive-up:disabled { opacity: 0.4; cursor: default; }
 
 .breadcrumb {
   display: flex;
@@ -113,6 +132,19 @@
 }
 .filelist-action:hover { background: #eef3f9; border-color: #d7dde3; }
 .filelist-action-danger:hover { background: #fdecec; border-color: #f5c2c2; color: #c0392b; }
+.filelist-name-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.filelist-name-button:hover { color: #2b6cb0; }
 
 .drive-toolbar {
   display: flex;
@@ -131,6 +163,16 @@
 }
 .drive-upload:hover { background: #245a96; }
 .drive-upload:disabled { background: #9bb8d4; cursor: default; }
+.drive-newfolder {
+  background: #fff;
+  color: #2b6cb0;
+  border: 1px solid #2b6cb0;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.drive-newfolder:hover { background: #eef3f9; }
 .drive-upload-input { display: none; }
 .drive-error {
   margin: 0;

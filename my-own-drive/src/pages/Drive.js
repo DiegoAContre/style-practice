@@ -141,7 +141,7 @@ export default function Drive() {
 
   function requestRenameFile(file) {
     setModalName(file.name)
-    setModal({ type: 'rename', file })
+    setModal({ type: 'rename-file', file })
   }
 
   async function confirmRenameFile() {
@@ -160,7 +160,7 @@ export default function Drive() {
   }
 
   function requestDeleteFile(file) {
-    setModal({ type: 'delete', file })
+    setModal({ type: 'delete-file', file })
   }
 
   async function confirmDeleteFile() {
@@ -175,6 +175,86 @@ export default function Drive() {
     setModal(null)
   }
 
+  // --- folders ---------------------------------------------------------------
+  function requestCreateFolder() {
+    setModalName('')
+    setModal({ type: 'create-folder' })
+  }
+
+  async function confirmCreateFolder() {
+    const name = modalName.trim()
+    if (!name) { setModal(null); return }
+    const { error } = await supabase
+      .from('folders')
+      .insert({ owner_id: user.id, parent_folder_id: activeFolder, name })
+    if (error) { setError(error.message); return }
+    setModal(null)
+    load(activeFolder)
+  }
+
+  function requestRenameFolder(folder) {
+    setModalName(folder.name)
+    setModal({ type: 'rename-folder', folder })
+  }
+
+  async function confirmRenameFolder() {
+    const folder = modal.folder
+    const name = modalName.trim()
+    if (!name || name === folder.name) { setModal(null); return }
+    const { error } = await supabase
+      .from('folders')
+      .update({ name })
+      .eq('id', folder.id)
+    if (error) { setError(error.message); return }
+    setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, name } : f))
+    setModal(null)
+  }
+
+  function requestDeleteFolder(folder) {
+    setModal({ type: 'delete-folder', folder })
+  }
+
+  async function confirmDeleteFolder() {
+    const root = modal.folder
+    // ponytail: O(my items) per delete; fine until thousands — then RPC +
+    //   recursive CTE + security-definer cleanup function.
+    const [fRes, fileRes] = await Promise.all([
+      supabase.from('folders').select('id, parent_folder_id').eq('owner_id', user.id),
+      supabase.from('files').select('id, storage_path, folder_id').eq('owner_id', user.id),
+    ])
+    if (fRes.error || fileRes.error) {
+      setError((fRes.error || fileRes.error).message); return
+    }
+    // build descendant folder-id set (BFS over parent_folder_id)
+    const byParent = new Map()
+    for (const f of fRes.data) {
+      const p = f.parent_folder_id ?? 'root'
+      if (!byParent.has(p)) byParent.set(p, [])
+      byParent.get(p).push(f.id)
+    }
+    const subtree = new Set([root.id])
+    const queue = [root.id]
+    while (queue.length) {
+      const cur = queue.shift()
+      for (const child of byParent.get(cur) ?? []) {
+        if (!subtree.has(child)) { subtree.add(child); queue.push(child) }
+      }
+    }
+    // collect storage paths of files inside any descendant folder (root included)
+    const paths = fileRes.data
+      .filter(fl => subtree.has(fl.folder_id))
+      .map(fl => fl.storage_path)
+    if (paths.length) {
+      const rem = await supabase.storage.from('drive-files').remove(paths)
+      if (rem.error) { setError(rem.error.message); return }
+    }
+    // cascade on folders.parent_folder_id + files.folder_id wipes all rows
+    const { error } = await supabase.from('folders').delete().eq('id', root.id)
+    if (error) { setError(error.message); return }
+    setModal(null)
+    load(activeFolder)
+  }
+
   async function signOut() {
     await supabase.auth.signOut()
     navigate('/login')
@@ -183,7 +263,17 @@ export default function Drive() {
   return (
     <div className="drive-page">
       <header className="drive-header">
-        <Breadcrumb path={path} onNavigate={navigateToFolder} />
+        <div className="drive-header-left">
+          <button
+            className="drive-up"
+            disabled={path.length === 0}
+            onClick={() => navigateToFolder(path.length > 1 ? path[path.length - 2].id : null)}
+            title="Up one level"
+          >
+            ↑
+          </button>
+          <Breadcrumb path={path} onNavigate={navigateToFolder} />
+        </div>
         <div className="drive-header-actions">
           <button className="drive-signout" onClick={() => navigate('/profile')}>Profile</button>
           <button className="drive-signout" onClick={signOut}>Sign out</button>
@@ -205,6 +295,7 @@ export default function Drive() {
             className="drive-upload-input"
             onChange={onUploadChange}
           />
+          <button className="drive-newfolder" onClick={requestCreateFolder}>New folder</button>
           {error && <pre className="drive-error">{error}</pre>}
         </div>
         <FileList
@@ -212,12 +303,14 @@ export default function Drive() {
           files={files}
           loading={loading}
           onOpenFolder={openFolder}
-          onDownload={onDownload}
-          onRename={requestRenameFile}
-          onDelete={requestDeleteFile}
+          onDownloadFile={onDownload}
+          onRenameFile={requestRenameFile}
+          onDeleteFile={requestDeleteFile}
+          onRenameFolder={requestRenameFolder}
+          onDeleteFolder={requestDeleteFolder}
         />
       </main>
-      {modal?.type === 'rename' && (
+      {modal?.type === 'rename-file' && (
         <Modal
           title="Rename file"
           onClose={() => setModal(null)}
@@ -242,7 +335,7 @@ export default function Drive() {
           />
         </Modal>
       )}
-      {modal?.type === 'delete' && (
+      {modal?.type === 'delete-file' && (
         <Modal
           title="Delete file"
           onClose={() => setModal(null)}
@@ -256,6 +349,73 @@ export default function Drive() {
           }
         >
           <p>Delete <strong>{modal.file.name}</strong>? This cannot be undone.</p>
+        </Modal>
+      )}
+      {modal?.type === 'create-folder' && (
+        <Modal
+          title="New folder"
+          onClose={() => setModal(null)}
+          footer={
+            <>
+              <button className="modal-button" onClick={() => setModal(null)}>Cancel</button>
+              <button
+                className="modal-button"
+                onClick={confirmCreateFolder}
+                disabled={!modalName.trim()}
+              >
+                Create
+              </button>
+            </>
+          }
+        >
+          <input
+            className="modal-input"
+            value={modalName}
+            onChange={e => setModalName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') confirmCreateFolder() }}
+            placeholder="Folder name"
+          />
+        </Modal>
+      )}
+      {modal?.type === 'rename-folder' && (
+        <Modal
+          title="Rename folder"
+          onClose={() => setModal(null)}
+          footer={
+            <>
+              <button className="modal-button" onClick={() => setModal(null)}>Cancel</button>
+              <button
+                className="modal-button"
+                onClick={confirmRenameFolder}
+                disabled={!modalName.trim() || modalName.trim() === modal.folder.name}
+              >
+                Rename
+              </button>
+            </>
+          }
+        >
+          <input
+            className="modal-input"
+            value={modalName}
+            onChange={e => setModalName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') confirmRenameFolder() }}
+          />
+        </Modal>
+      )}
+      {modal?.type === 'delete-folder' && (
+        <Modal
+          title="Delete folder"
+          onClose={() => setModal(null)}
+          footer={
+            <>
+              <button className="modal-button" onClick={() => setModal(null)}>Cancel</button>
+              <button className="modal-button modal-button-danger" onClick={confirmDeleteFolder}>
+                Delete
+              </button>
+            </>
+          }
+        >
+          <p>Delete <strong>{modal.folder.name}</strong> and everything inside it? This cannot be undone.</p>
         </Modal>
       )}
     </div>

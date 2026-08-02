@@ -43,8 +43,17 @@ projects — do not touch them.
 - Features: upload (multi-file, 50 MB cap), download (signed URL, 60 s),
   rename metadata-only (storage path keeps `{id}` — blob never moves), delete
   (removes blob then row). All owner-only via RLS.
+- Folder create / rename / delete. Folder delete is **recursive**: it walks the
+  owner's folder subtree in JS, `storage.remove()`s every blob under any
+  descendant folder, then deletes the row (cascade wipes subfolder + file rows).
+  `ponytail:` O(my items) per delete; switch to an RPC + recursive CTE once a
+  user has thousands of items.
 - Rename/delete use the in-page `src/components/Modal.js` (backdrop click /
-  Esc / Cancel dismiss). No `window.prompt` / `window.confirm`.
+  Esc / Cancel dismiss). No `window.prompt` / `window.confirm`. One `modal` state
+  holds `{ type, file|folder }`; `modalName` is the shared input value.
+- Upload places files at `folder_id: activeFolder` — works at root (`null`) or
+  inside any folder by navigating into it first. Upload-a-whole-folder
+  (`webkitdirectory`) is deferred.
 - Root-level query gotcha: `folder_id = null` rows don't match `.eq('folder_id', '')`.
   Branch on `folderId`: use `.is('folder_id', null)` for root, `.eq('folder_id',
   folderId)` for subfolders. Same for `folders.parent_folder_id`.
