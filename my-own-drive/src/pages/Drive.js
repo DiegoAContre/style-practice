@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
+import JSZip from 'jszip'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Breadcrumb from '../components/Breadcrumb'
 import FileList from '../components/FileList'
@@ -22,6 +23,7 @@ export default function Drive() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
   const dragCounter = useRef(0)
+  const [selected, setSelected] = useState({ files: new Set(), folders: new Set() })
   const [error, setError] = useState('')
   const [modal, setModal] = useState(null) // { type: 'rename'|'delete', file }
   const [modalName, setModalName] = useState('')
@@ -69,6 +71,7 @@ export default function Drive() {
   }
 
   async function navigateToFolder(folderId) {
+    setSelected({ files: new Set(), folders: new Set() })
     if (folderId === null) {
       setActiveFolder(null)
       setPath([])
@@ -90,6 +93,31 @@ export default function Drive() {
     }
     setActiveFolder(folderId)
     setPath(chain)
+  }
+
+  function toggleFile(f) {
+    setSelected(prev => {
+      const next = new Set(prev.files)
+      next.has(f.id) ? next.delete(f.id) : next.add(f.id)
+      return { ...prev, files: next }
+    })
+  }
+
+  function toggleFolder(f) {
+    setSelected(prev => {
+      const next = new Set(prev.folders)
+      next.has(f.id) ? next.delete(f.id) : next.add(f.id)
+      return { ...prev, folders: next }
+    })
+  }
+
+  function toggleSelectAll() {
+    const allSel = folders.every(f => selected.folders.has(f.id)) && files.every(f => selected.files.has(f.id))
+    if (allSel) setSelected({ files: new Set(), folders: new Set() })
+    else setSelected({
+      folders: new Set(folders.map(f => f.id)),
+      files: new Set(files.map(f => f.id)),
+    })
   }
 
   async function findFolder(parent, name) {
@@ -290,6 +318,120 @@ export default function Drive() {
     a.remove()
   }
 
+  // Collect a folder's subtree (the root + all descendants) plus all file rows
+  // inside any subtree folder. Shared by folder delete and ZIP download.
+  // ponytail: O(my items) per call (two whole-table owner-scoped queries).
+  //   Switch to an RPC + recursive CTE returning only the subtree once a user
+  //   has thousands of items.
+  async function collectSubtree(rootId) {
+    const [fRes, fileRes] = await Promise.all([
+      supabase.from('folders').select('id, name, parent_folder_id').eq('owner_id', user.id),
+      supabase.from('files').select('id, name, storage_path, folder_id').eq('owner_id', user.id),
+    ])
+    if (fRes.error) return { error: fRes.error }
+    if (fileRes.error) return { error: fileRes.error }
+    const folderById = new Map(fRes.data.map(f => [f.id, f]))
+    const byParent = new Map()
+    for (const f of fRes.data) {
+      const p = f.parent_folder_id ?? 'root'
+      if (!byParent.has(p)) byParent.set(p, [])
+      byParent.get(p).push(f.id)
+    }
+    const subtree = new Set([rootId])
+    const queue = [rootId]
+    while (queue.length) {
+      const cur = queue.shift()
+      for (const child of byParent.get(cur) ?? []) {
+        if (!subtree.has(child)) { subtree.add(child); queue.push(child) }
+      }
+    }
+    const filesInSubtree = fileRes.data.filter(fl => subtree.has(fl.folder_id))
+    return { folderById, subtree, filesInSubtree }
+  }
+
+  // Build a relative path for a file inside a subtree: walk folder_id up to
+  // rootId (inclusive), collecting names.
+  function relPathInSubtree(file, rootId, folderById) {
+    const chain = []
+    let cur = file.folder_id
+    while (cur) {
+      const f = folderById.get(cur)
+      if (!f) break
+      chain.push(f.name)
+      if (cur === rootId) break
+      cur = f.parent_folder_id
+    }
+    chain.reverse()
+    return chain.length ? `${chain.join('/')}/${file.name}` : file.name
+  }
+
+  async function downloadZip() {
+    const filesToZip = [] // { relPath, storagePath }
+    const taken = new Set()
+    const claim = (relPath) => {
+      const lower = relPath.toLowerCase()
+      if (!taken.has(lower)) { taken.add(lower); return relPath }
+      const slash = relPath.lastIndexOf('/')
+      const dir = slash >= 0 ? relPath.slice(0, slash + 1) : ''
+      const base = slash >= 0 ? relPath.slice(slash + 1) : relPath
+      const [stem, ext] = splitName(base)
+      let n = 1, candidate
+      do { candidate = dir + (ext ? `${stem} (${n}).${ext}` : `${stem} (${n})`); n++ }
+      while (taken.has(candidate.toLowerCase()))
+      taken.add(candidate.toLowerCase())
+      return candidate
+    }
+
+    // Directly selected files (at zip root by name).
+    for (const id of selected.files) {
+      const f = files.find(x => x.id === id)
+      if (f) filesToZip.push({ relPath: claim(f.name), storagePath: f.storage_path })
+    }
+    // Each selected folder zipped as folderName/...
+    for (const rootId of selected.folders) {
+      const sub = await collectSubtree(rootId)
+      if (sub.error) { setError(sub.error.message); return }
+      for (const f of sub.filesInSubtree) {
+        const rel = relPathInSubtree(f, rootId, sub.folderById)
+        filesToZip.push({ relPath: claim(rel), storagePath: f.storage_path })
+      }
+    }
+    if (!filesToZip.length) { setSelected({ files: new Set(), folders: new Set() }); return }
+
+    setUploading(true)
+    setProgress({ current: 0, total: filesToZip.length, name: 'downloading', pct: 0 })
+    const errs = []
+    const zip = new JSZip()
+    for (let i = 0; i < filesToZip.length; i++) {
+      const { relPath, storagePath } = filesToZip[i]
+      setProgress({ current: i + 1, total: filesToZip.length, name: relPath, pct: 0 })
+      const { data, error } = await supabase.storage.from('drive-files').download(storagePath)
+      if (error) { errs.push(`${relPath}: ${error.message}`); continue }
+      zip.file(relPath, data)
+    }
+    if (errs.length) { setError(errs.join('\n')) }
+    if (filesToZip.length > errs.length) {
+      setProgress(p => ({ ...p, name: 'compressing', pct: 0 }))
+      const out = await zip.generateAsync(
+        { type: 'blob' },
+        (meta) => setProgress(p => ({ ...p, pct: Math.round(meta.percent) })),
+      )
+      const url = URL.createObjectURL(out)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = selected.folders.size === 1 && selected.files.size === 0
+        ? `${folders.find(f => f.id === [...selected.folders][0])?.name ?? 'download'}.zip`
+        : 'download.zip'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    }
+    setUploading(false)
+    setProgress(null)
+    setSelected({ files: new Set(), folders: new Set() })
+  }
+
   function requestRenameFile(file) {
     setModalName(file.name)
     setModal({ type: 'rename-file', file })
@@ -481,6 +623,11 @@ export default function Drive() {
             </div>
           )}
           <button className="drive-newfolder" onClick={requestCreateFolder}>New folder</button>
+          {selected.files.size + selected.folders.size > 0 && (
+            <button className="drive-upload" onClick={downloadZip} disabled={uploading}>
+              Download ZIP ({selected.files.size + selected.folders.size})
+            </button>
+          )}
           {error && <pre className="drive-error">{error}</pre>}
         </div>
         {dragging && <div className="drive-drop-overlay">Drop to upload</div>}
@@ -488,6 +635,16 @@ export default function Drive() {
           folders={folders}
           files={files}
           loading={loading}
+          selectedFiles={selected.files}
+          selectedFolders={selected.folders}
+          allVisibleSelected={
+            folders.length + files.length > 0 &&
+            folders.every(f => selected.folders.has(f.id)) &&
+            files.every(f => selected.files.has(f.id))
+          }
+          onToggleFile={toggleFile}
+          onToggleFolder={toggleFolder}
+          onToggleSelectAll={toggleSelectAll}
           onOpenFolder={openFolder}
           onDownloadFile={onDownload}
           onRenameFile={requestRenameFile}

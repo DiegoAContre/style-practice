@@ -98,7 +98,7 @@
 
 .filelist-row {
   display: grid;
-  grid-template-columns: 32px 1fr 120px 140px auto;
+  grid-template-columns: 28px 32px 1fr 120px 140px auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1rem;
@@ -115,6 +115,23 @@
 .filelist-row:last-child { border-bottom: none; }
 .filelist-row:hover { background: #f7f9fc; }
 .filelist-row-file { cursor: default; }
+
+.filelist-header {
+  cursor: default;
+  font-weight: 600;
+  color: #586572;
+  font-size: 0.8rem;
+  border-bottom: 1px solid #e3e6ea;
+  background: #fafbfc;
+}
+.filelist-header:hover { background: #fafbfc; }
+
+.filelist-check {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
 
 .filelist-icon { font-size: 1.15rem; }
 .filelist-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
