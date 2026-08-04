@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+
 export default function FileList({
   folders,
   files,
@@ -8,6 +10,7 @@ export default function FileList({
   onToggleFile,
   onToggleFolder,
   onToggleSelectAll,
+  onRangeSelect,
   onOpenFolder,
   onDownloadFile,
   onRenameFile,
@@ -15,9 +18,37 @@ export default function FileList({
   onRenameFolder,
   onDeleteFolder,
 }) {
+  const lastCheckedId = useRef(null)
+
   if (loading) return <div className="filelist-loading">Loading…</div>
   if (!folders.length && !files.length) {
     return <div className="filelist-empty">This folder is empty.</div>
+  }
+
+  // Flat ordered id list matching render order: folders first, then files.
+  const orderedIds = [
+    ...folders.map(f => ({ id: f.id, kind: 'folder' })),
+    ...files.map(f => ({ id: f.id, kind: 'file' })),
+  ]
+
+  // Row checkbox click with optional shift-range.
+  // ponytail: mouse-only range select; no keyboard shift+arrow (needs
+  //   role="row" + roving tabindex — bigger change, skip).
+  function onRowClick(e, id, kind, checked) {
+    if (e.shiftKey && lastCheckedId.current && lastCheckedId.current !== id) {
+      const lastIdx = orderedIds.findIndex(r => r.id === lastCheckedId.current)
+      const curIdx = orderedIds.findIndex(r => r.id === id)
+      if (lastIdx >= 0 && curIdx >= 0) {
+        const [lo, hi] = lastIdx < curIdx ? [lastIdx, curIdx] : [curIdx, lastIdx]
+        const range = orderedIds.slice(lo, hi + 1)
+        onRangeSelect(range, checked)
+        lastCheckedId.current = id
+        return
+      }
+    }
+    lastCheckedId.current = id
+    if (kind === 'folder') onToggleFolder(folders.find(f => f.id === id))
+    else onToggleFile(files.find(f => f.id === id))
   }
 
   const anySelected = (selectedFiles.size + selectedFolders.size) > 0
@@ -45,7 +76,8 @@ export default function FileList({
             type="checkbox"
             className="filelist-check"
             checked={selectedFolders.has(f.id)}
-            onChange={() => onToggleFolder(f)}
+            onChange={() => {}}
+            onClick={(e) => onRowClick(e, f.id, 'folder', !selectedFolders.has(f.id))}
             aria-label={`Select ${f.name}`}
           />
           <span className="filelist-icon" aria-hidden>📁</span>
@@ -64,7 +96,8 @@ export default function FileList({
             type="checkbox"
             className="filelist-check"
             checked={selectedFiles.has(f.id)}
-            onChange={() => onToggleFile(f)}
+            onChange={() => {}}
+            onClick={(e) => onRowClick(e, f.id, 'file', !selectedFiles.has(f.id))}
             aria-label={`Select ${f.name}`}
           />
           <span className="filelist-icon" aria-hidden>📄</span>

@@ -18,7 +18,8 @@ export default function Drive() {
   const [folders, setFolders] = useState([])
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState(null) // 'upload' | 'download' | null
   const [progress, setProgress] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -120,6 +121,17 @@ export default function Drive() {
     })
   }
 
+  function toggleSelectRange(range, checked) {
+    setSelected(prev => {
+      const fns = new Set(prev.files), fds = new Set(prev.folders)
+      for (const r of range) {
+        if (r.kind === 'folder') checked ? fds.add(r.id) : fds.delete(r.id)
+        else checked ? fns.add(r.id) : fns.delete(r.id)
+      }
+      return { files: fns, folders: fds }
+    })
+  }
+
   async function findFolder(parent, name) {
     let q = supabase.from('folders').select('id').eq('owner_id', user.id).ilike('name', name)
     if (parent) q = q.eq('parent_folder_id', parent)
@@ -166,7 +178,7 @@ export default function Drive() {
   async function uploadFiles(list) {
     if (!list.length) return
     setError('')
-    setUploading(true)
+    setBusy(true); setMode('upload')
     setProgress({ current: 0, total: list.length, name: '', pct: 0 })
     const errs = []
 
@@ -264,7 +276,7 @@ export default function Drive() {
       catch (e) { errs.push(`${file.name}: ${e.message}`) }
     }
     if (errs.length) setError(errs.join('\n'))
-    setUploading(false)
+    setBusy(false); setMode(null)
     setProgress(null)
     load(activeFolder)
   }
@@ -398,7 +410,7 @@ export default function Drive() {
     }
     if (!filesToZip.length) { setSelected({ files: new Set(), folders: new Set() }); return }
 
-    setUploading(true)
+    setBusy(true); setMode('download')
     setProgress({ current: 0, total: filesToZip.length, name: 'downloading', pct: 0 })
     const errs = []
     const zip = new JSZip()
@@ -427,7 +439,7 @@ export default function Drive() {
       a.remove()
       URL.revokeObjectURL(url)
     }
-    setUploading(false)
+    setBusy(false); setMode(null)
     setProgress(null)
     setSelected({ files: new Set(), folders: new Set() })
   }
@@ -579,7 +591,7 @@ export default function Drive() {
         onDragLeave={() => { dragCounter.current--; if (dragCounter.current <= 0) { dragCounter.current = 0; setDragging(false) } }}
         onDrop={async (e) => {
           e.preventDefault(); dragCounter.current = 0; setDragging(false)
-          if (uploading) return
+          if (busy) return
           const list = await collectEntries(e.dataTransfer.items)
           uploadFiles(list)
         }}
@@ -588,12 +600,12 @@ export default function Drive() {
           <div className="drive-upload-wrap">
             <button
               className="drive-upload"
-              disabled={uploading}
+              disabled={busy}
               onClick={() => setMenuOpen(o => !o)}
             >
-              {uploading ? 'Uploading…' : 'Upload'}
+              {busy && mode === 'upload' ? 'Uploading…' : 'Upload'}
             </button>
-            {menuOpen && !uploading && (
+            {menuOpen && !busy && (
               <div className="drive-upload-menu" onMouseLeave={() => setMenuOpen(false)}>
                 <button onClick={() => { setMenuOpen(false); fileInput.current?.click() }}>Files…</button>
                 <button onClick={() => { setMenuOpen(false); folderInput.current?.click() }}>Folder…</button>
@@ -617,15 +629,15 @@ export default function Drive() {
           {progress && (
             <div className="drive-progress">
               <div className="drive-progress-meta">
-                {progress.current}/{progress.total} — {progress.name}
+                {mode === 'download' ? 'Download ' : 'Upload '}{progress.current}/{progress.total} — {progress.name}
               </div>
               <div className="drive-progress-bar"><div style={{ width: `${progress.pct}%` }} /></div>
             </div>
           )}
           <button className="drive-newfolder" onClick={requestCreateFolder}>New folder</button>
           {selected.files.size + selected.folders.size > 0 && (
-            <button className="drive-upload" onClick={downloadZip} disabled={uploading}>
-              Download ZIP ({selected.files.size + selected.folders.size})
+            <button className="drive-upload" onClick={downloadZip} disabled={busy}>
+              {busy && mode === 'download' ? 'Downloading…' : `Download ZIP (${selected.files.size + selected.folders.size})`}
             </button>
           )}
           {error && <pre className="drive-error">{error}</pre>}
@@ -645,6 +657,7 @@ export default function Drive() {
           onToggleFile={toggleFile}
           onToggleFolder={toggleFolder}
           onToggleSelectAll={toggleSelectAll}
+          onRangeSelect={toggleSelectRange}
           onOpenFolder={openFolder}
           onDownloadFile={onDownload}
           onRenameFile={requestRenameFile}
