@@ -18,6 +18,10 @@ export default function Drive() {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const dragCounter = useRef(0)
   const [error, setError] = useState('')
   const [modal, setModal] = useState(null) // { type: 'rename'|'delete', file }
   const [modalName, setModalName] = useState('')
@@ -88,44 +92,6 @@ export default function Drive() {
     setPath(chain)
   }
 
-  async function onUploadChange(e) {
-    const list = Array.from(e.target.files ?? [])
-    e.target.value = '' // allow re-selecting the same file later
-    if (!list.length) return
-    setError('')
-    setUploading(true)
-    const errs = []
-    for (const file of list) {
-      if (file.size > MAX_FILE_SIZE) {
-        errs.push(`${file.name}: exceeds 50 MB`)
-        continue
-      }
-      const fileId = crypto.randomUUID()
-      const storagePath = `${user.id}/${fileId}/${file.name}`
-      const up = await supabase.storage
-        .from('drive-files')
-        .upload(storagePath, file, { upsert: false })
-      if (up.error) { errs.push(`${file.name}: ${up.error.message}`); continue }
-      const ins = await supabase.from('files').insert({
-        owner_id: user.id,
-        folder_id: activeFolder,
-        name: file.name,
-        storage_path: storagePath,
-        mime_type: file.type || null,
-        size: file.size,
-      })
-      if (ins.error) {
-        // ponytail: best-effort rollback of the uploaded blob if the row insert
-        //   fails; not transactional, but keeps storage from accumulating orphans.
-        await supabase.storage.from('drive-files').remove([storagePath])
-        errs.push(`${file.name}: ${ins.error.message}`)
-      }
-    }
-    if (errs.length) setError(errs.join('\n'))
-    setUploading(false)
-    load(activeFolder)
-  }
-
   async function findFolder(parent, name) {
     let q = supabase.from('folders').select('id').eq('owner_id', user.id).ilike('name', name)
     if (parent) q = q.eq('parent_folder_id', parent)
@@ -134,12 +100,17 @@ export default function Drive() {
     return data?.id ?? null
   }
 
-  async function onFolderUploadChange(e) {
-    const list = Array.from(e.target.files ?? [])
-    e.target.value = ''
+  // Unified upload routine used by the file picker, the folder picker, and
+  // drag-drop. Each File may carry a synthetic webkitRelativePath
+  // ("dir/sub/file.txt") describing where it lives under activeFolder.
+  // ponytail: sequential uploads (no concurrency pool); N folder-select
+  //   queries per upload (N = unique path segments). Switch to a 3-at-a-time
+  //   pool + a parent-chain RPC when large queues feel slow.
+  async function uploadFiles(list) {
     if (!list.length) return
     setError('')
     setUploading(true)
+    setProgress({ current: 0, total: list.length, name: '', pct: 0 })
     const errs = []
 
     // Collect unique folder directory paths (everything but the last segment of
@@ -149,8 +120,6 @@ export default function Drive() {
     )).sort((a, b) => a.split('/').length - b.split('/').length)
 
     // Find-or-create each dir path under activeFolder. Cache by "parentId|name".
-    // ponytail: N folder-select queries per upload (N = unique path segments).
-    //   Fine until thousands of folders; then a single RPC returning parent chains.
     const dirId = new Map()
     for (const dp of dirPaths) {
       let parent = activeFolder
@@ -170,9 +139,13 @@ export default function Drive() {
       }
     }
 
+    let i = 0
     for (const file of list) {
+      i++
+      setProgress({ current: i, total: list.length, name: file.name, pct: 0 })
       if (file.size > MAX_FILE_SIZE) {
-        errs.push(`${file.name}: exceeds 50 MB`); continue
+        errs.push(`${file.name}: exceeds 50 MB`)
+        continue
       }
       const dp = (file.webkitRelativePath || file.name).split('/').slice(0, -1).join('/')
       let folderId = activeFolder
@@ -183,7 +156,14 @@ export default function Drive() {
       }
       const fileId = crypto.randomUUID()
       const storagePath = `${user.id}/${fileId}/${file.name}`
-      const up = await supabase.storage.from('drive-files').upload(storagePath, file, { upsert: false })
+      const up = await supabase.storage.from('drive-files').upload(
+        storagePath, file,
+        {
+          upsert: false,
+          onUploadProgress: (ev) => ev.loaded && ev.total &&
+            setProgress(p => ({ ...p, pct: Math.round(ev.loaded / ev.total * 100) })),
+        }
+      )
       if (up.error) { errs.push(`${file.name}: ${up.error.message}`); continue }
       const ins = await supabase.from('files').insert({
         owner_id: user.id, folder_id: folderId, name: file.name,
@@ -197,7 +177,43 @@ export default function Drive() {
     }
     if (errs.length) setError(errs.join('\n'))
     setUploading(false)
+    setProgress(null)
     load(activeFolder)
+  }
+
+  function onPickerChange(e) {
+    const list = Array.from(e.target.files ?? [])
+    e.target.value = '' // allow re-selecting the same file later
+    uploadFiles(list)
+  }
+
+  // Drag-drop: read DataTransferItem entries (files + directories), recursing
+  // into directories and giving each File a synthetic webkitRelativePath.
+  function collectEntries(items) {
+    const out = []
+    const traverse = (entry, prefix) => new Promise((resolve) => {
+      if (entry.isFile) {
+        entry.file((f) => {
+          f.webkitRelativePath = prefix ? `${prefix}/${f.name}` : f.name
+          out.push(f)
+          resolve()
+        }, () => resolve())
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader()
+        const readAll = () => reader.readEntries(async (entries) => {
+          if (!entries.length) return resolve()
+          await Promise.all(entries.map(e => traverse(e, prefix ? `${prefix}/${entry.name}` : entry.name)))
+          readAll()
+        }, () => resolve())
+        readAll()
+      } else { resolve() }
+    })
+    return Promise.all(
+      Array.from(items).filter(it => it.webkitGetAsEntry).map(it => {
+        const entry = it.webkitGetAsEntry()
+        return entry ? traverse(entry, '') : null
+      }).filter(Boolean)
+    ).then(() => out)
   }
 
   async function onDownload(file) {
@@ -354,39 +370,60 @@ export default function Drive() {
           <button className="drive-signout" onClick={signOut}>Sign out</button>
         </div>
       </header>
-      <main className="drive-main">
+      <main
+        className="drive-main"
+        onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setDragging(true) }}
+        onDragOver={(e) => e.preventDefault()}
+        onDragLeave={() => { dragCounter.current--; if (dragCounter.current <= 0) { dragCounter.current = 0; setDragging(false) } }}
+        onDrop={async (e) => {
+          e.preventDefault(); dragCounter.current = 0; setDragging(false)
+          if (uploading) return
+          const list = await collectEntries(e.dataTransfer.items)
+          uploadFiles(list)
+        }}
+      >
         <div className="drive-toolbar">
-          <button
-            className="drive-upload"
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-          >
-            {uploading ? 'Uploading…' : 'Upload files'}
-          </button>
+          <div className="drive-upload-wrap">
+            <button
+              className="drive-upload"
+              disabled={uploading}
+              onClick={() => setMenuOpen(o => !o)}
+            >
+              {uploading ? 'Uploading…' : 'Upload'}
+            </button>
+            {menuOpen && !uploading && (
+              <div className="drive-upload-menu" onMouseLeave={() => setMenuOpen(false)}>
+                <button onClick={() => { setMenuOpen(false); fileInput.current?.click() }}>Files…</button>
+                <button onClick={() => { setMenuOpen(false); folderInput.current?.click() }}>Folder…</button>
+              </div>
+            )}
+          </div>
           <input
             ref={fileInput}
             type="file"
             multiple
             className="drive-upload-input"
-            onChange={onUploadChange}
+            onChange={onPickerChange}
           />
-          <button
-            className="drive-upload"
-            disabled={uploading}
-            onClick={() => folderInput.current?.click()}
-          >
-            {uploading ? 'Uploading…' : 'Upload folder'}
-          </button>
           <input
             ref={el => { folderInput.current = el; if (el) el.setAttribute('webkitdirectory', '') }}
             type="file"
             multiple
             className="drive-upload-input"
-            onChange={onFolderUploadChange}
+            onChange={onPickerChange}
           />
+          {progress && (
+            <div className="drive-progress">
+              <div className="drive-progress-meta">
+                {progress.current}/{progress.total} — {progress.name}
+              </div>
+              <div className="drive-progress-bar"><div style={{ width: `${progress.pct}%` }} /></div>
+            </div>
+          )}
           <button className="drive-newfolder" onClick={requestCreateFolder}>New folder</button>
           {error && <pre className="drive-error">{error}</pre>}
         </div>
+        {dragging && <div className="drive-drop-overlay">Drop to upload</div>}
         <FileList
           folders={folders}
           files={files}
