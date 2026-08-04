@@ -254,7 +254,7 @@ export default function Drive() {
     const traverse = (entry, prefix) => new Promise((resolve) => {
       if (entry.isFile) {
         entry.file((f) => {
-          f.webkitRelativePath = prefix ? `${prefix}/${f.name}` : f.name
+          Object.defineProperty(f, 'webkitRelativePath', { value: prefix ? `${prefix}/${f.name}` : f.name, configurable: true })
           out.push(f)
           resolve()
         }, () => resolve())
