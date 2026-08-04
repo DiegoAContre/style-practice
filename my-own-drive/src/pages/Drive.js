@@ -22,6 +22,7 @@ export default function Drive() {
   const [modal, setModal] = useState(null) // { type: 'rename'|'delete', file }
   const [modalName, setModalName] = useState('')
   const fileInput = useRef(null)
+  const folderInput = useRef(null)
 
   const load = useCallback(async (folderId) => {
     setLoading(true)
@@ -116,6 +117,80 @@ export default function Drive() {
       if (ins.error) {
         // ponytail: best-effort rollback of the uploaded blob if the row insert
         //   fails; not transactional, but keeps storage from accumulating orphans.
+        await supabase.storage.from('drive-files').remove([storagePath])
+        errs.push(`${file.name}: ${ins.error.message}`)
+      }
+    }
+    if (errs.length) setError(errs.join('\n'))
+    setUploading(false)
+    load(activeFolder)
+  }
+
+  async function findFolder(parent, name) {
+    let q = supabase.from('folders').select('id').eq('owner_id', user.id).ilike('name', name)
+    if (parent) q = q.eq('parent_folder_id', parent)
+    else q = q.is('parent_folder_id', null)
+    const { data } = await q.maybeSingle()
+    return data?.id ?? null
+  }
+
+  async function onFolderUploadChange(e) {
+    const list = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (!list.length) return
+    setError('')
+    setUploading(true)
+    const errs = []
+
+    // Collect unique folder directory paths (everything but the last segment of
+    // webkitRelativePath), shallow → deep so parents are created first.
+    const dirPaths = Array.from(new Set(
+      list.map(f => f.webkitRelativePath || f.name).map(p => p.split('/').slice(0, -1).join('/')).filter(Boolean)
+    )).sort((a, b) => a.split('/').length - b.split('/').length)
+
+    // Find-or-create each dir path under activeFolder. Cache by "parentId|name".
+    // ponytail: N folder-select queries per upload (N = unique path segments).
+    //   Fine until thousands of folders; then a single RPC returning parent chains.
+    const dirId = new Map()
+    for (const dp of dirPaths) {
+      let parent = activeFolder
+      for (const seg of dp.split('/')) {
+        const key = `${parent ?? 'root'}|${seg}`
+        if (dirId.has(key)) { parent = dirId.get(key); continue }
+        let id = await findFolder(parent, seg)
+        if (!id) {
+          const { data: created, error } = await supabase.from('folders').insert({
+            owner_id: user.id, parent_folder_id: parent, name: seg,
+          }).select('id').single()
+          if (error) { errs.push(`folder ${seg}: ${error.message}`); break }
+          id = created.id
+        }
+        dirId.set(key, id)
+        parent = id
+      }
+    }
+
+    for (const file of list) {
+      if (file.size > MAX_FILE_SIZE) {
+        errs.push(`${file.name}: exceeds 50 MB`); continue
+      }
+      const dp = (file.webkitRelativePath || file.name).split('/').slice(0, -1).join('/')
+      let folderId = activeFolder
+      let parent = activeFolder
+      for (const seg of dp ? dp.split('/') : []) {
+        folderId = dirId.get(`${parent ?? 'root'}|${seg}`)
+        parent = folderId
+      }
+      const fileId = crypto.randomUUID()
+      const storagePath = `${user.id}/${fileId}/${file.name}`
+      const up = await supabase.storage.from('drive-files').upload(storagePath, file, { upsert: false })
+      if (up.error) { errs.push(`${file.name}: ${up.error.message}`); continue }
+      const ins = await supabase.from('files').insert({
+        owner_id: user.id, folder_id: folderId, name: file.name,
+        storage_path: storagePath, mime_type: file.type || null, size: file.size,
+      })
+      if (ins.error) {
+        // ponytail: best-effort blob rollback on row-insert failure (no transaction).
         await supabase.storage.from('drive-files').remove([storagePath])
         errs.push(`${file.name}: ${ins.error.message}`)
       }
@@ -294,6 +369,20 @@ export default function Drive() {
             multiple
             className="drive-upload-input"
             onChange={onUploadChange}
+          />
+          <button
+            className="drive-upload"
+            disabled={uploading}
+            onClick={() => folderInput.current?.click()}
+          >
+            {uploading ? 'Uploading…' : 'Upload folder'}
+          </button>
+          <input
+            ref={el => { folderInput.current = el; if (el) el.setAttribute('webkitdirectory', '') }}
+            type="file"
+            multiple
+            className="drive-upload-input"
+            onChange={onFolderUploadChange}
           />
           <button className="drive-newfolder" onClick={requestCreateFolder}>New folder</button>
           {error && <pre className="drive-error">{error}</pre>}
