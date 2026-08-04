@@ -100,6 +100,35 @@ export default function Drive() {
     return data?.id ?? null
   }
 
+  // ponytail: fixed 1s delay, no backoff/jitter, no error classification
+  //   (retries validation failures harmlessly). Switch to exponential + jitter
+  //   + a transient classifier under real concurrency.
+  function withRetry(fn, attempts = 3) {
+    return async (...args) => {
+      let lastErr
+      for (let a = 0; a < attempts; a++) {
+        try { return await fn(...args) }
+        catch (e) { lastErr = e; if (a < attempts - 1) await new Promise(r => setTimeout(r, 1000)) }
+      }
+      throw lastErr
+    }
+  }
+
+  // split "foo.txt" -> ["foo", "txt"]; "foo" -> ["foo", ""]; "foo.tar.gz" -> ["foo.tar", "gz"]
+  function splitName(name) {
+    const i = name.lastIndexOf('.')
+    return i > 0 ? [name.slice(0, i), name.slice(i + 1)] : [name, '']
+  }
+
+  function dedupeName(name, taken) {
+    if (!taken.has(name.toLowerCase())) return name
+    const [stem, ext] = splitName(name)
+    let n = 1, candidate
+    do { candidate = ext ? `${stem} (${n}).${ext}` : `${stem} (${n})`; n++ }
+    while (taken.has(candidate.toLowerCase()))
+    return candidate
+  }
+
   // Unified upload routine used by the file picker, the folder picker, and
   // drag-drop. Each File may carry a synthetic webkitRelativePath
   // ("dir/sub/file.txt") describing where it lives under activeFolder.
@@ -140,6 +169,25 @@ export default function Drive() {
     }
 
     let i = 0
+    // Pre-pass: existing file names per target folder, case-insensitive.
+    // ponytail: one query per upload (plus root branch). Fine until an upload
+    //   targets thousands of folders; then an .in() on a coalesced expression.
+    const existingPerFolder = new Map()
+    const targetFolderIds = new Set([activeFolder, ...dirId.values()].filter(Boolean))
+    if (targetFolderIds.size) {
+      const { data: existingRows } = await supabase.from('files')
+        .select('name, folder_id').eq('owner_id', user.id).in('folder_id', [...targetFolderIds])
+      for (const r of existingRows ?? []) {
+        if (!existingPerFolder.has(r.folder_id)) existingPerFolder.set(r.folder_id, new Set())
+        existingPerFolder.get(r.folder_id).add(r.name.toLowerCase())
+      }
+    }
+    if (activeFolder === null) {
+      const { data: rootRows } = await supabase.from('files')
+        .select('name').eq('owner_id', user.id).is('folder_id', null)
+      existingPerFolder.set(null, new Set((rootRows ?? []).map(r => r.name.toLowerCase())))
+    }
+
     for (const file of list) {
       i++
       setProgress({ current: i, total: list.length, name: file.name, pct: 0 })
@@ -154,26 +202,38 @@ export default function Drive() {
         folderId = dirId.get(`${parent ?? 'root'}|${seg}`)
         parent = folderId
       }
+      // Dedupe against existing + already-claimed-in-this-batch (case-insensitive).
+      if (!existingPerFolder.has(folderId)) existingPerFolder.set(folderId, new Set())
+      const taken = existingPerFolder.get(folderId)
+      const name = dedupeName(file.name, taken)
+      taken.add(name.toLowerCase())
+
       const fileId = crypto.randomUUID()
-      const storagePath = `${user.id}/${fileId}/${file.name}`
-      const up = await supabase.storage.from('drive-files').upload(
-        storagePath, file,
-        {
-          upsert: false,
-          onUploadProgress: (ev) => ev.loaded && ev.total &&
-            setProgress(p => ({ ...p, pct: Math.round(ev.loaded / ev.total * 100) })),
+      const storagePath = `${user.id}/${fileId}/${name}`
+      // Retry the upload+insert unit; on insert failure remove the orphan blob
+      // before the next attempt so we don't accumulate duplicates in storage.
+      const upsertUnit = withRetry(async () => {
+        const up = await supabase.storage.from('drive-files').upload(
+          storagePath, file,
+          {
+            upsert: false,
+            onUploadProgress: (ev) => ev.loaded && ev.total &&
+              setProgress(p => ({ ...p, pct: Math.round(ev.loaded / ev.total * 100) })),
+          }
+        )
+        if (up.error) throw up.error
+        const ins = await supabase.from('files').insert({
+          owner_id: user.id, folder_id: folderId, name,
+          storage_path: storagePath, mime_type: file.type || null, size: file.size,
+        })
+        if (ins.error) {
+          await supabase.storage.from('drive-files').remove([storagePath])
+          throw ins.error
         }
-      )
-      if (up.error) { errs.push(`${file.name}: ${up.error.message}`); continue }
-      const ins = await supabase.from('files').insert({
-        owner_id: user.id, folder_id: folderId, name: file.name,
-        storage_path: storagePath, mime_type: file.type || null, size: file.size,
+        return null
       })
-      if (ins.error) {
-        // ponytail: best-effort blob rollback on row-insert failure (no transaction).
-        await supabase.storage.from('drive-files').remove([storagePath])
-        errs.push(`${file.name}: ${ins.error.message}`)
-      }
+      try { await upsertUnit() }
+      catch (e) { errs.push(`${file.name}: ${e.message}`) }
     }
     if (errs.length) setError(errs.join('\n'))
     setUploading(false)
