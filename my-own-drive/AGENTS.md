@@ -29,13 +29,41 @@ projects — do not touch them.
   (`REACT_APP_SUPABASE_ANON_KEY`), never the service-role key.
 - `profiles.username` is **UNIQUE**; a `handle_new_user` trigger auto-inserts a
   profile row on signup and copies `username` from `raw_user_meta_data`.
-- **RLS is enabled on every table.** Select policies are **owner-only**
-  (`auth.uid() = owner_id`) — deliberately no cross-table subquery. Earlier
-  attempts had `files ↔ shared_items ↔ folders` recursion in the select
-  policies, which made PostgREST return 500 on every query. When sharing lands,
-  add `security definer` functions (`file_is_shared_with_me`,
-  `folder_is_shared_with_me`) and reference them in the select policies to
-  avoid recursion. `shared_items` has no select policy yet.
+- **RLS is enabled and forced** (`force row level security`) on every table.
+  Select policies on `files`/`folders` are owner-only **OR** shared-with-me via
+  `security definer` helpers in the `private` schema
+  (`private.file_is_shared_with_me`, `private.folder_is_shared_with_me`). The
+  helpers walk the folder ancestor chain recursively so a folder share
+  transitively exposes its descendants (Google-Drive behavior) — recursion-safe
+  because the helpers run as `security definer` and bypass RLS internally. Wrap
+  calls in `(select private.…(id))` inside the policy so the helper runs once
+  per query, not per row. **Never** inline `files ↔ shared_items ↔ folders`
+  subqueries in policies — that's the recursion that blew up PostgREST with 500
+  on every query in the first attempt.
+- **Sharing writes go through RPCs only** — the app never inserts/updates/
+  deletes on `shared_items` directly:
+    - `public.share_item(item_type, item_id, recipient, permission)` —
+      owner-only idempotent upsert (self-share + not-owner raise; permission
+      flipped via the same call thanks to the
+      `(item_type, item_id, shared_with_user_id) unique` constraint).
+    - `public.unshare_item(item_type, item_id, recipient)` — owner or recipient
+      may call.
+    - `public.my_shares()` — owner lists outbound shares.
+    - `public.resolve_user_by_username(text)` — username → uuid, for the
+      recipient picker. Returns uuid only (no email/avatar leakage).
+    - `public.usernames_for_users(uuid[])` — reverse batch lookup used to
+      display recipient/owner usernames in the Share modal and `/shared`.
+    - `public.create_share_download_url(file uuid)` — returns a 60 s signed
+      Storage URL after verifying the caller is owner or share-recipient.
+      Used for shared-file downloads because storage SELECT policies stay
+      owner-only (storage policies can't cleanly call security definer).
+  `shared_items` has a recipient-only select policy
+  (`shared_with_user_id = auth.uid()`) so `/shared` can list inbound shares.
+  No insert/update/delete policies on `shared_items`.
+  `ponytail:` `permission` is stored but not enforced on writes yet —
+  recipients see shared items read-only (writes stay owner-only via RLS
+  update/insert policies). Wire edit semantics when recipients can upload into
+  shared folders.
 - Storage bucket `drive-files` is **private**; object paths follow
   `{owner_id}/{file_id}/{name}`. Storage policies match the owner prefix.
 
@@ -51,6 +79,9 @@ projects — do not touch them.
 - Rename/delete use the in-page `src/components/Modal.js` (backdrop click /
   Esc / Cancel dismiss). No `window.prompt` / `window.confirm`. One `modal` state
   holds `{ type, file|folder }`; `modalName` is the shared input value.
+- `FileList` shows Rename/Delete only for the row owner (`viewerId` prop gates
+  via `owner_id === viewerId`); a Share (↗) button shows on every owned row.
+  Items the viewer doesn't own render a `Shared` badge instead.
 - Upload places files at `folder_id: activeFolder` — works at root (`null`) or
   inside any folder by navigating into it first. Upload-a-whole-folder
   (`webkitdirectory`) is deferred.
@@ -59,6 +90,24 @@ projects — do not touch them.
   folderId)` for subfolders. Same for `folders.parent_folder_id`.
 - `load()` surfaces query errors (no silent 500s); `setError` drives the inline
   `.drive-error` banner.
+- Drive only loads items owned by the current user (`eq('owner_id', user.id)`);
+  shared-with-me items appear on `/shared` instead. Recipients never browse a
+  shared folder's contents inline — they download it as a ZIP.
+
+## Shared page (src/pages/Shared.js)
+- Lists `shared_items where shared_with_user_id = me` (recipient-only select
+  policy), then resolves item details via `files`/`folders` `.in('id', ids)`
+  (admitted by the widened select policies + the recursion-safe helpers).
+- Owner usernames come from `usernames_for_users(uuid[])`.
+- File download: `rpc('create_share_download_url', { p_file })` → 60 s signed
+  Storage URL; clickable anchor.
+- Folder download: walks the subtree using global queries (no `owner_id`
+  filter — RLS admits descendants via `folder_is_shared_with_me`), fetches each
+  file via `create_share_download_url` + `fetch()`, and zips in-browser with
+  `JSZip`. Reuses the same progress-bar pattern as Drive's upload/download.
+- `ponytail:` no folder navigation, no de-dupe inside the zip — recipients get
+  the whole shared subtree as one `.zip` and that's it. Add a shared-folder
+  browser if nested folder UX is needed.
 
 ## Docker (local dev only)
 - `docker compose up` — React dev server at http://localhost:3000 with hot

@@ -135,6 +135,19 @@
 
 .filelist-icon { font-size: 1.15rem; }
 .filelist-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filelist-name-cell { display: flex; align-items: center; gap: 0.5rem; overflow: hidden; min-width: 0; }
+.filelist-badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  background: #eef3f9;
+  color: #2b6cb0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .filelist-meta, .filelist-date { color: #777; font-size: 0.85rem; }
 
 .filelist-actions { display: flex; gap: 0.25rem; }
@@ -316,3 +329,62 @@
   color: #fff;
 }
 .modal-button-danger:hover { background: #a52f23; }
+
+/* Share modal */
+.modal-share-add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.modal-share-username { flex: 1 1 12rem; }
+.modal-share-perm {
+  width: auto;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #d0d4d9;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: #fff;
+  color: #1a1a1a;
+  flex: 0 0 auto;
+}
+.modal-share-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.modal-share-empty {
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0;
+}
+.modal-share-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e3e6ea;
+  border-radius: 6px;
+}
+.modal-share-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+}
+.modal-share-row-perm {
+  font-size: 0.75rem;
+  color: #586572;
+  text-transform: lowercase;
+  background: #f0f2f5;
+  padding: 0.1rem 0.45rem;
+  border-radius: 8px;
+  text-transform: capitalize;
+}

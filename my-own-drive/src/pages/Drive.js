@@ -26,8 +26,15 @@ export default function Drive() {
   const dragCounter = useRef(0)
   const [selected, setSelected] = useState({ files: new Set(), folders: new Set() })
   const [error, setError] = useState('')
-  const [modal, setModal] = useState(null) // { type: 'rename'|'delete', file }
-  const [modalName, setModalName] = useState('')
+const [modal, setModal] = useState(null) // { type: 'rename'|'delete'|'share', file|folder }
+const [modalName, setModalName] = useState('')
+// Share-modal state (separate from modalName; share uses its own inputs).
+const [shareUsername, setShareUsername] = useState('')
+const [sharePerm, setSharePerm] = useState('view')
+const [currentShares, setCurrentShares] = useState([])
+const [shareNames, setShareNames] = useState({})
+const [shareError, setShareError] = useState('')
+const [shareBusy, setShareBusy] = useState(false)
   const fileInput = useRef(null)
   const folderInput = useRef(null)
 
@@ -35,11 +42,11 @@ export default function Drive() {
     setLoading(true)
     const foldersQ = supabase
       .from('folders')
-      .select('id, name, created_at, parent_folder_id')
+      .select('id, name, created_at, parent_folder_id, owner_id')
       .eq('owner_id', user.id)
     const filesQ = supabase
       .from('files')
-      .select('id, name, size, mime_type, storage_path, created_at')
+      .select('id, name, size, mime_type, storage_path, created_at, owner_id')
       .eq('owner_id', user.id)
     if (folderId) {
       foldersQ.eq('parent_folder_id', folderId)
@@ -565,6 +572,73 @@ export default function Drive() {
     navigate('/login')
   }
 
+  // --- sharing (owner side) --------------------------------------------------
+  // ponytail: permission ('view'|'edit') is stored but not enforced on writes
+  //   yet — recipients see shared files/folders read-only (writes are still
+  //   owner-only via RLS update/insert policies). Wire edit semantics when we
+  //   let recipients upload into shared folders.
+  async function refreshCurrentShares(itemType, itemId) {
+    const { data, error } = await supabase.rpc('my_shares')
+    if (error) { setShareError(error.message); return }
+    const mine = (data ?? []).filter(s => s.item_type === itemType && s.item_id === itemId)
+    setCurrentShares(mine)
+    if (mine.length) {
+      const { data: names } = await supabase.rpc('usernames_for_users', {
+        p_ids: mine.map(s => s.shared_with_user_id),
+      })
+      const m = {}
+      for (const n of names ?? []) m[n.id] = n.username ?? '(unknown)'
+      setShareNames(m)
+    } else {
+      setShareNames({})
+    }
+  }
+
+  function requestShareFile(file) {
+    setShareUsername(''); setSharePerm('view'); setShareError('')
+    setShareBusy(false); setCurrentShares([]); setShareNames({})
+    setModal({ type: 'share-file', file })
+    refreshCurrentShares('file', file.id)
+  }
+
+  function requestShareFolder(folder) {
+    setShareUsername(''); setSharePerm('view'); setShareError('')
+    setShareBusy(false); setCurrentShares([]); setShareNames({})
+    setModal({ type: 'share-folder', folder })
+    refreshCurrentShares('folder', folder.id)
+  }
+
+  async function confirmAddShare() {
+    const item = modal.file ?? modal.folder
+    if (!item) return
+    const itemType = modal.type === 'share-file' ? 'file' : 'folder'
+    const username = shareUsername.trim()
+    if (!username) return
+    setShareBusy(true); setShareError('')
+    const { data: uuid, error: e1 } = await supabase.rpc('resolve_user_by_username', { p_username: username })
+    if (e1 || !uuid) { setShareError('User not found'); setShareBusy(false); return }
+    const { error: e2 } = await supabase.rpc('share_item', {
+      p_item_type: itemType, p_item_id: item.id, p_recipient: uuid, p_permission: sharePerm,
+    })
+    if (e2) { setShareError(e2.message); setShareBusy(false); return }
+    setShareUsername(''); setSharePerm('view')
+    await refreshCurrentShares(itemType, item.id)
+    setShareBusy(false)
+  }
+
+  async function confirmRevokeShare(recipientId) {
+    const item = modal.file ?? modal.folder
+    if (!item) return
+    const itemType = modal.type === 'share-file' ? 'file' : 'folder'
+    setShareBusy(true); setShareError('')
+    const { error } = await supabase.rpc('unshare_item', {
+      p_item_type: itemType, p_item_id: item.id, p_recipient: recipientId,
+    })
+    if (error) setShareError(error.message)
+    await refreshCurrentShares(itemType, item.id)
+    setShareBusy(false)
+  }
+
   return (
     <div className="drive-page">
       <header className="drive-header">
@@ -580,6 +654,7 @@ export default function Drive() {
           <Breadcrumb path={path} onNavigate={navigateToFolder} />
         </div>
         <div className="drive-header-actions">
+          <button className="drive-signout" onClick={() => navigate('/shared')}>Shared with me</button>
           <button className="drive-signout" onClick={() => navigate('/profile')}>Profile</button>
           <button className="drive-signout" onClick={signOut}>Sign out</button>
         </div>
@@ -664,6 +739,9 @@ export default function Drive() {
           onDeleteFile={requestDeleteFile}
           onRenameFolder={requestRenameFolder}
           onDeleteFolder={requestDeleteFolder}
+          onShareFile={requestShareFile}
+          onShareFolder={requestShareFolder}
+          viewerId={user.id}
         />
       </main>
       {modal?.type === 'rename-file' && (
@@ -772,6 +850,55 @@ export default function Drive() {
           }
         >
           <p>Delete <strong>{modal.folder.name}</strong> and everything inside it? This cannot be undone.</p>
+        </Modal>
+      )}
+      {(modal?.type === 'share-file' || modal?.type === 'share-folder') && (
+        <Modal
+          title={modal.type === 'share-file' ? 'Share file' : 'Share folder'}
+          onClose={() => setModal(null)}
+          footer={<button className="modal-button" onClick={() => setModal(null)}>Done</button>}
+        >
+          <p>Sharing <strong>{modal.file?.name ?? modal.folder?.name}</strong>.</p>
+          <div className="modal-share-add">
+            <input
+              className="modal-input modal-share-username"
+              value={shareUsername}
+              onChange={e => setShareUsername(e.target.value)}
+              placeholder="username"
+              onKeyDown={e => { if (e.key === 'Enter' && !shareBusy && shareUsername.trim()) confirmAddShare() }}
+              disabled={shareBusy}
+            />
+            <select
+              className="modal-input modal-share-perm"
+              value={sharePerm}
+              onChange={e => setSharePerm(e.target.value)}
+              disabled={shareBusy}
+            >
+              <option value="view">View</option>
+              <option value="edit">Edit</option>
+            </select>
+            <button
+              className="modal-button"
+              onClick={confirmAddShare}
+              disabled={shareBusy || !shareUsername.trim()}
+            >Add</button>
+          </div>
+          {shareError && <pre className="drive-error">{shareError}</pre>}
+          <div className="modal-share-list">
+            {currentShares.length === 0
+              ? <p className="modal-share-empty">Not shared with anyone yet.</p>
+              : currentShares.map(s => (
+                <div className="modal-share-row" key={s.shared_with_user_id}>
+                  <span className="modal-share-row-name">{shareNames[s.shared_with_user_id] ?? '…'}</span>
+                  <span className="modal-share-row-perm">{s.permission}</span>
+                  <button
+                    className="modal-button modal-button-danger"
+                    onClick={() => confirmRevokeShare(s.shared_with_user_id)}
+                    disabled={shareBusy}
+                  >Revoke</button>
+                </div>
+              ))}
+          </div>
         </Modal>
       )}
     </div>
