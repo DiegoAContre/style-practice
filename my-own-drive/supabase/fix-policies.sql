@@ -100,7 +100,8 @@ as $$
   );
 $$;
 revoke execute on function private.file_is_shared_with_me(uuid)
-  from public, anon, authenticated, service_role;
+  from public, anon, service_role;
+grant execute on function private.file_is_shared_with_me(uuid) to authenticated;
 
 -- Recursion-safe helper: is this folder shared with the calling user?
 -- True if the folder itself or any ancestor folder is shared with me.
@@ -125,7 +126,8 @@ as $$
   );
 $$;
 revoke execute on function private.folder_is_shared_with_me(uuid)
-  from public, anon, authenticated, service_role;
+  from public, anon, service_role;
+grant execute on function private.folder_is_shared_with_me(uuid) to authenticated;
 
 -- Owner-only write RPC. Idempotent upsert on (item_type, item_id,
 -- shared_with_user_id) so retries / permission flips don't duplicate.

@@ -99,7 +99,8 @@ as $$
   );
 $$;
 revoke execute on function private.file_is_shared_with_me(uuid)
-  from public, anon, authenticated, service_role;
+  from public, anon, service_role;
+grant execute on function private.file_is_shared_with_me(uuid) to authenticated;
 
 create or replace function private.folder_is_shared_with_me(p_folder uuid)
 returns boolean
@@ -122,7 +123,8 @@ as $$
   );
 $$;
 revoke execute on function private.folder_is_shared_with_me(uuid)
-  from public, anon, authenticated, service_role;
+  from public, anon, service_role;
+grant execute on function private.folder_is_shared_with_me(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- sharing RPCs (write paths). See supabase/fix-policies.sql for full notes.
