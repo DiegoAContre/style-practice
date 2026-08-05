@@ -1,0 +1,21 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  flex-wrap: wrap;
+}
+
+.breadcrumb-crumb {
+  background: none;
+  border: none;
+  color: #2b6cb0;
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.95rem;
+  border-radius: 4px;
+}
+
+.breadcrumb-crumb:hover { background: #eef3f9; }
+
+.breadcrumb-sep { color: #999; margin: 0 0.1rem; }

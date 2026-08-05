@@ -95,19 +95,31 @@ projects — do not touch them.
   shared folder's contents inline — they download it as a ZIP.
 
 ## Shared page (src/pages/Shared.js)
-- Lists `shared_items where shared_with_user_id = me` (recipient-only select
-  policy), then resolves item details via `files`/`folders` `.in('id', ids)`
-  (admitted by the widened select policies + the recursion-safe helpers).
-- Owner usernames come from `usernames_for_users(uuid[])`.
+- Two views via `activeFolder` state:
+    - **Inbox root** (`activeFolder = null`): lists `shared_items where
+      shared_with_user_id = me` (recipient-only select policy), then resolves
+      item details via `files`/`folders` `.in('id', ids)` (admitted by the
+      widened select policies + the recursion-safe helpers).
+    - **Inside a shared folder** (`activeFolder = id`): queries `folders` where
+      `parent_folder_id = id` and `files` where `folder_id = id` with **no
+      `owner_id` filter** — RLS admits descendants via
+      `folder_is_shared_with_me`'s recursive ancestor walk. Lets recipients
+      browse a shared subtree like Drive.
+- Breadcrumb (first crumb "Shared with me" via `rootLabel` prop) + up-one-level
+  button; walks `parent_folder_id` chain to rebuild `path`.
+- Reuses `FileList` with `viewerId={user.id}` so owner-only actions (Share /
+  Rename / Delete) hide on rows the recipient doesn't own; only ⬇ shows.
+  Folder rows get a ⬇ (download-as-ZIP) button via `onDownloadFolderZip` prop.
 - File download: `rpc('create_share_download_url', { p_file })` → 60 s signed
   Storage URL; clickable anchor.
-- Folder download: walks the subtree using global queries (no `owner_id`
-  filter — RLS admits descendants via `folder_is_shared_with_me`), fetches each
-  file via `create_share_download_url` + `fetch()`, and zips in-browser with
-  `JSZip`. Reuses the same progress-bar pattern as Drive's upload/download.
-- `ponytail:` no folder navigation, no de-dupe inside the zip — recipients get
-  the whole shared subtree as one `.zip` and that's it. Add a shared-folder
-  browser if nested folder UX is needed.
+- Folder download: `collectSubtree()` (global queries, no owner filter — RLS
+  admits descendants), each file via `create_share_download_url` + `fetch()`,
+  zipped in-browser with `JSZip`. Single folder → `folderName.zip`; mixed
+  selection → `download.zip`. Reuses the same progress-bar pattern as Drive.
+- Multi-select + shift-range work identically to Drive (same FileList logic).
+- `ponytail:` recipients stay read-only (no upload/rename/delete/move);
+  `permission='edit'` is stored but not enforced on writes yet — wire when
+  recipients can upload into shared folders.
 
 ## Docker (local dev only)
 - `docker compose up` — React dev server at http://localhost:3000 with hot

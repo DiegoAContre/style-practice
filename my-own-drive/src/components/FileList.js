@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import './FileList.css'
 
 export default function FileList({
   folders,
@@ -19,6 +20,7 @@ export default function FileList({
   onDeleteFolder,
   onShareFile,
   onShareFolder,
+  onDownloadFolderZip,
   viewerId,
 }) {
   const lastCheckedId = useRef(null)
@@ -93,6 +95,9 @@ export default function FileList({
             <span className="filelist-meta">—</span>
             <span className="filelist-date">{new Date(f.created_at).toLocaleDateString()}</span>
             <span className="filelist-actions">
+              {onDownloadFolderZip && (
+                <button className="filelist-action" title="Download as ZIP" onClick={() => onDownloadFolderZip(f)}>⬇</button>
+              )}
               {isOwner && onShareFolder && (
                 <button className="filelist-action" title="Share" onClick={() => onShareFolder(f)}>↗</button>
               )}

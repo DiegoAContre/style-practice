@@ -13,7 +13,7 @@
   background: #fff;
   border-bottom: 1px solid #e3e6ea;
 }
-.shared-header-left { display: flex; align-items: center; gap: 0.75rem; }
+.shared-header-left { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .shared-up {
   background: none;
   border: 1px solid #d0d4d9;
@@ -25,8 +25,8 @@
   color: #444;
   line-height: 1;
 }
-.shared-up:hover { background: #f0f2f5; }
-.shared-title { margin: 0; font-size: 1.05rem; color: #1a1a1a; font-weight: 600; }
+.shared-up:hover:not(:disabled) { background: #f0f2f5; }
+.shared-up:disabled { opacity: 0.4; cursor: default; }
 .shared-signout {
   background: none;
   border: 1px solid #d0d4d9;
@@ -42,62 +42,31 @@
 .shared-main {
   flex: 1;
   padding: 1.5rem;
-  max-width: 900px;
+  max-width: 1100px;
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+  position: relative;
 }
 
-.shared-loading,
-.shared-empty {
-  padding: 2.5rem 1rem;
-  text-align: center;
-  color: #888;
-  font-size: 0.95rem;
-}
-
-.shared-list {
+.shared-toolbar {
   display: flex;
-  flex-direction: column;
-  background: #fff;
-  border: 1px solid #e3e6ea;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.shared-row {
-  display: grid;
-  grid-template-columns: 32px 1fr 150px auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid #f0f2f5;
-  font-size: 0.9rem;
-  color: #1a1a1a;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
-.shared-row:last-child { border-bottom: none; }
-.shared-row:hover { background: #f7f9fc; }
-
-.shared-icon { font-size: 1.15rem; }
-.shared-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.shared-owner { color: #777; font-size: 0.85rem; }
-.shared-actions { display: flex; gap: 0.25rem; }
-.shared-action {
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0.1rem 0.35rem;
+.shared-zip {
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  font-size: 0.95rem;
-  line-height: 1;
-  color: #555;
+  font-size: 0.9rem;
 }
-.shared-action:hover { background: #eef3f9; border-color: #d7dde3; }
-.shared-action:disabled { opacity: 0.5; cursor: default; }
+.shared-zip:hover { background: #245a96; }
+.shared-zip:disabled { background: #9bb8d4; cursor: default; }
 
 .shared-progress {
   display: flex;
