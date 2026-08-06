@@ -67,6 +67,16 @@ projects — do not touch them.
 - Storage bucket `drive-files` is **private**; object paths follow
   `{owner_id}/{file_id}/{name}`. Storage policies match the owner prefix.
 
+## Shared navbar (src/components/Header.js)
+- Used by Drive + Shared; takes the page's up button + breadcrumb as children
+  (rendered after the nav links). Left: wordmark + `My Drive` / `Shared with me`
+  nav links (plain text buttons via `useNavigate`). Right: avatar dropdown —
+  `profile.avatar_url` img (falls back to a manila circle with the username
+  initial if empty or on `img onerror`) opening a menu on wrapper `:hover` and
+  `:focus-within` (CSS-only, no JS): username label, Profile, Sign out
+  (stamp-colored). Header pulls `useAuth()` itself; pages have no header
+  actions of their own anymore.
+
 ## Drive page (src/pages/Drive.js)
 - Features: upload (multi-file, 50 MB cap), download (signed URL, 60 s),
   rename metadata-only (storage path keeps `{id}` — blob never moves), delete

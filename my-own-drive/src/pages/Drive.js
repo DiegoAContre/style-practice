@@ -1,10 +1,10 @@
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import JSZip from 'jszip'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Breadcrumb from '../components/Breadcrumb'
 import FileList from '../components/FileList'
+import Header from '../components/Header'
 import Modal from '../components/Modal'
 import './Drive.css'
 
@@ -12,7 +12,6 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB — Supabase free-tier storage d
 
 export default function Drive() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [activeFolder, setActiveFolder] = useState(null)
   const [path, setPath] = useState([])
   const [folders, setFolders] = useState([])
@@ -567,13 +566,7 @@ const [shareBusy, setShareBusy] = useState(false)
     load(activeFolder)
   }
 
-  async function signOut() {
-    await supabase.auth.signOut()
-    navigate('/login')
-  }
-
-  // --- sharing (owner side) --------------------------------------------------
-  // ponytail: permission ('view'|'edit') is stored but not enforced on writes
+  // --- sharing (owner side) --------------------------------------------------  // ponytail: permission ('view'|'edit') is stored but not enforced on writes
   //   yet — recipients see shared files/folders read-only (writes are still
   //   owner-only via RLS update/insert policies). Wire edit semantics when we
   //   let recipients upload into shared folders.
@@ -641,25 +634,17 @@ const [shareBusy, setShareBusy] = useState(false)
 
   return (
     <div className="drive-page">
-      <header className="drive-header">
-        <div className="drive-header-left">
-          <span className="drive-wordmark">my own drive</span>
-          <button
-            className="drive-up"
-            disabled={path.length === 0}
-            onClick={() => navigateToFolder(path.length > 1 ? path[path.length - 2].id : null)}
-            title="Up one level"
-          >
-            ↑
-          </button>
-          <Breadcrumb path={path} onNavigate={navigateToFolder} />
-        </div>
-        <div className="drive-header-actions">
-          <button className="drive-signout" onClick={() => navigate('/shared')}>Shared with me</button>
-          <button className="drive-signout" onClick={() => navigate('/profile')}>Profile</button>
-          <button className="drive-signout" onClick={signOut}>Sign out</button>
-        </div>
-      </header>
+      <Header>
+        <button
+          className="drive-up"
+          disabled={path.length === 0}
+          onClick={() => navigateToFolder(path.length > 1 ? path[path.length - 2].id : null)}
+          title="Up one level"
+        >
+          ↑
+        </button>
+        <Breadcrumb path={path} onNavigate={navigateToFolder} />
+      </Header>
       <main
         className="drive-main"
         onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setDragging(true) }}

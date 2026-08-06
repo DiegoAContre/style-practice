@@ -1,0 +1,112 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--paper-card);
+  border-bottom: 1px solid var(--rule);
+  gap: 0.75rem;
+}
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.app-wordmark {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  text-transform: lowercase;
+  padding-right: 0.75rem;
+  border-right: 1px solid var(--rule);
+}
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.app-nav-link {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.35rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  color: var(--navy);
+  border-radius: 4px;
+}
+.app-nav-link:hover { background: var(--navy-tint); }
+
+.app-avatar {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+.app-avatar-letter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--manila);
+  color: var(--ink);
+  border: 1px solid var(--manila-dark);
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.app-avatar-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid var(--rule-dark);
+  object-fit: cover;
+  cursor: pointer;
+  background: var(--paper-card);
+}
+.app-avatar-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 10rem;
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 30;
+}
+.app-avatar:hover .app-avatar-menu,
+.app-avatar:focus-within .app-avatar-menu { display: flex; }
+.app-avatar-name {
+  padding: 0.55rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--rule);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-avatar-item {
+  background: none;
+  border: none;
+  padding: 0.55rem 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+.app-avatar-item:hover { background: var(--navy-tint); }
+.app-avatar-item-signout { color: var(--stamp); }

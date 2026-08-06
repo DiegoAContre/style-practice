@@ -1,15 +1,14 @@
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import JSZip from 'jszip'
 import { useCallback, useEffect, useState } from 'react'
 import Breadcrumb from '../components/Breadcrumb'
 import FileList from '../components/FileList'
+import Header from '../components/Header'
 import './Shared.css'
 
 export default function Shared() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [activeFolder, setActiveFolder] = useState(null)
   const [path, setPath] = useState([])
   const [folders, setFolders] = useState([])
@@ -290,32 +289,19 @@ if (fRes.error) { setError(fRes.error.message); setLoading(false); return }
     setSelected({ files: new Set(), folders: new Set() })
   }
 
-  async function signOut() {
-    await supabase.auth.signOut()
-    navigate('/login')
-  }
-
   return (
     <div className="shared-page">
-      <header className="shared-header">
-        <div className="shared-header-left">
-          <span className="shared-wordmark">my own drive</span>
-          <button
-            className="shared-up"
-            disabled={path.length === 0}
-            onClick={() => navigateToFolder(path.length > 1 ? path[path.length - 2].id : null)}
-            title="Up one level"
-          >
-            ↑
-          </button>
-          <Breadcrumb path={path} onNavigate={navigateToFolder} rootLabel="Shared with me" />
-        </div>
-        <div className="shared-header-actions">
-          <button className="shared-signout" onClick={() => navigate('/drive')}>My drive</button>
-          <button className="shared-signout" onClick={() => navigate('/profile')}>Profile</button>
-          <button className="shared-signout" onClick={signOut}>Sign out</button>
-        </div>
-      </header>
+      <Header>
+        <button
+          className="shared-up"
+          disabled={path.length === 0}
+          onClick={() => navigateToFolder(path.length > 1 ? path[path.length - 2].id : null)}
+          title="Up one level"
+        >
+          ↑
+        </button>
+        <Breadcrumb path={path} onNavigate={navigateToFolder} rootLabel="Shared with me" />
+      </Header>
       <main className="shared-main">
         <div className="shared-toolbar">
           {progress && (
