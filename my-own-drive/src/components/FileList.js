@@ -73,7 +73,7 @@ export default function FileList({
         <span className="filelist-name">Name</span>
         <span className="filelist-meta">Size</span>
         <span className="filelist-date">Created</span>
-        <span className="filelist-actions" />
+        <span className="filelist-actions">Actions</span>
       </div>
       {folders.map(f => {
         const isOwner = !viewerId || f.owner_id === viewerId
