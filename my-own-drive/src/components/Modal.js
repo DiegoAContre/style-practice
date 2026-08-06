@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import './Modal.css'
 
 export default function Modal({ title, onClose, children, footer }) {
   const cardRef = useRef(null)

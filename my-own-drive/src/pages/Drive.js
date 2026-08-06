@@ -643,6 +643,7 @@ const [shareBusy, setShareBusy] = useState(false)
     <div className="drive-page">
       <header className="drive-header">
         <div className="drive-header-left">
+          <span className="drive-wordmark">my own drive</span>
           <button
             className="drive-up"
             disabled={path.length === 0}
@@ -717,7 +718,7 @@ const [shareBusy, setShareBusy] = useState(false)
           )}
           {error && <pre className="drive-error">{error}</pre>}
         </div>
-        {dragging && <div className="drive-drop-overlay">Drop to upload</div>}
+        {dragging && <div className="drive-drop-overlay">Drop to file away</div>}
         <FileList
           folders={folders}
           files={files}
@@ -886,7 +887,7 @@ const [shareBusy, setShareBusy] = useState(false)
           {shareError && <pre className="drive-error">{shareError}</pre>}
           <div className="modal-share-list">
             {currentShares.length === 0
-              ? <p className="modal-share-empty">Not shared with anyone yet.</p>
+              ? <p className="modal-share-empty">Not filed with anyone yet.</p>
               : currentShares.map(s => (
                 <div className="modal-share-row" key={s.shared_with_user_id}>
                   <span className="modal-share-row-name">{shareNames[s.shared_with_user_id] ?? '…'}</span>

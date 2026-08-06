@@ -9,13 +9,14 @@
 .breadcrumb-crumb {
   background: none;
   border: none;
-  color: #2b6cb0;
+  color: var(--navy);
   cursor: pointer;
   padding: 0.2rem 0.35rem;
   font-size: 0.95rem;
+  font-family: var(--font-body);
   border-radius: 4px;
 }
 
-.breadcrumb-crumb:hover { background: #eef3f9; }
+.breadcrumb-crumb:hover { background: var(--navy-tint); }
 
-.breadcrumb-sep { color: #999; margin: 0 0.1rem; }
+.breadcrumb-sep { color: var(--ink-faint); margin: 0 0.1rem; }

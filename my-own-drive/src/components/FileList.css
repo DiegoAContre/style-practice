@@ -1,9 +1,15 @@
+/* FileList — the ledger. Column headers in mono caps, sizes/dates in
+   tabular mono, hairline rules. Folder rows get a CSS-drawn manila folder
+   with a tab; file rows get a page glyph with ruled lines. The "Shared"
+   badge is a rotated rubber stamp. */
+
 .filelist {
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid #e3e6ea;
-  border-radius: 10px;
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -11,7 +17,7 @@
 .filelist-empty {
   padding: 2.5rem 1rem;
   text-align: center;
-  color: #888;
+  color: var(--ink-faint);
   font-size: 0.95rem;
 }
 
@@ -22,53 +28,129 @@
   gap: 0.75rem;
   padding: 0.6rem 1rem;
   border: none;
-  border-bottom: 1px solid #f0f2f5;
-  background: #fff;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-card);
   width: 100%;
   text-align: left;
-  cursor: pointer;
   font-size: 0.9rem;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .filelist-row:last-child { border-bottom: none; }
-.filelist-row:hover { background: #f7f9fc; }
+.filelist-row:hover { background: #f4efe3; }
 .filelist-row-file { cursor: default; }
 
 .filelist-header {
-  cursor: default;
-  font-weight: 600;
-  color: #586572;
-  font-size: 0.8rem;
-  border-bottom: 1px solid #e3e6ea;
-  background: #fafbfc;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 500;
+  color: var(--ink-faint);
+  font-size: 0.68rem;
+  border-bottom: 1px solid var(--rule-dark);
+  background: var(--paper);
 }
-.filelist-header:hover { background: #fafbfc; }
+.filelist-header:hover { background: var(--paper); }
 
 .filelist-check {
   cursor: pointer;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   margin: 0;
+  accent-color: var(--navy);
 }
 
-.filelist-icon { font-size: 1.15rem; }
+/* --- glyphs -------------------------------------------------------------- */
+/* base: keep the grid cell, hide the emoji fallback */
+.filelist-icon { position: relative; font-size: 0; width: 1.4rem; height: 1.4rem; }
+
+/* manila folder with a tab */
+.filelist-row-folder .filelist-icon::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1.35rem;
+  height: 0.9rem;
+  background: var(--manila);
+  border: 1px solid var(--manila-dark);
+  border-radius: 2px;
+}
+.filelist-row-folder .filelist-icon::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 0.6rem;
+  height: 0.22rem;
+  background: var(--manila);
+  border: 1px solid var(--manila-dark);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+}
+
+/* page with ruled lines */
+.filelist-row-file .filelist-icon::before {
+  content: '';
+  position: absolute;
+  left: 0.12rem;
+  top: 0;
+  width: 0.95rem;
+  height: 1.2rem;
+  background: var(--paper-card);
+  border: 1px solid var(--rule-dark);
+  border-radius: 2px;
+}
+.filelist-row-file .filelist-icon::after {
+  content: '';
+  position: absolute;
+  left: 0.32rem;
+  right: 0.32rem;
+  top: 0.28rem;
+  height: 1px;
+  background: var(--rule-dark);
+  box-shadow: 0 0.24rem 0 var(--rule-dark), 0 0.48rem 0 var(--rule-dark);
+  opacity: 0.7;
+}
+
+/* --- name + stamp -------------------------------------------------------- */
 .filelist-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.filelist-name-cell { display: flex; align-items: center; gap: 0.5rem; overflow: hidden; min-width: 0; }
+.filelist-name-cell { display: flex; align-items: center; gap: 0.6rem; overflow: hidden; min-width: 0; }
+
 .filelist-badge {
   display: inline-block;
-  padding: 0.05rem 0.4rem;
-  border-radius: 10px;
-  background: #eef3f9;
-  color: #2b6cb0;
-  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.6rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  color: var(--stamp);
+  border: 1.5px solid var(--stamp);
+  border-radius: 3px;
+  padding: 0.08rem 0.35rem;
+  transform: rotate(-4deg);
+  opacity: 0.85;
+  background: transparent;
   white-space: nowrap;
   flex-shrink: 0;
 }
-.filelist-meta, .filelist-date { color: #777; font-size: 0.85rem; }
 
+/* --- data columns -------------------------------------------------------- */
+.filelist-meta {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.filelist-date {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+/* --- row actions --------------------------------------------------------- */
 .filelist-actions { display: flex; gap: 0.25rem; }
 .filelist-action {
   background: none;
@@ -78,11 +160,12 @@
   cursor: pointer;
   font-size: 0.95rem;
   line-height: 1;
-  color: #555;
+  color: var(--ink-faint);
 }
-.filelist-action:hover { background: #eef3f9; border-color: #d7dde3; }
+.filelist-action:hover { background: var(--navy-tint); border-color: var(--rule); color: var(--navy); }
 .filelist-action:disabled { opacity: 0.5; cursor: default; }
-.filelist-action-danger:hover { background: #fdecec; border-color: #f5c2c2; color: #c0392b; }
+.filelist-action-danger:hover { background: var(--stamp-tint); border-color: var(--stamp); color: var(--stamp); }
+
 .filelist-name-button {
   background: none;
   border: none;
@@ -95,4 +178,4 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.filelist-name-button:hover { color: #2b6cb0; }
+.filelist-name-button:hover { color: var(--navy); }

@@ -1,0 +1,28 @@
+/* Manila Archive — design tokens. Single source of truth for color, type,
+   radius and shadow across every page. Import once via src/index.css. */
+:root {
+  /* palette */
+  --paper: #f6f2e9;        /* page background — warm off-white, like a desk */
+  --paper-card: #fdfcf7;   /* cards / file list surfaces */
+  --manila: #d9b98a;       /* folder tabs + folder glyph fill */
+  --manila-dark: #b99b68;  /* folder glyph outline */
+  --ink: #26231d;          /* primary text */
+  --ink-soft: #5c564a;     /* secondary text */
+  --ink-faint: #8a8375;    /* captions, column headers */
+  --navy: #1f3a5f;         /* actions: upload, links, focus */
+  --navy-dark: #16293f;    /* action hover */
+  --navy-tint: #e8edf3;    /* action tint hover on paper */
+  --stamp: #b3402a;        /* rubber-stamp red: Shared badge, danger */
+  --stamp-tint: #f7e8e4;   /* danger hover tint */
+  --rule: #e2dacb;         /* hairline borders */
+  --rule-dark: #cfc7b4;    /* stronger hairline (inputs, glyphs) */
+
+  /* type */
+  --font-body: 'Libre Franklin', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  /* shape */
+  --radius: 6px;
+  --shadow-card: 0 1px 2px rgba(38, 35, 29, 0.05), 0 4px 14px rgba(38, 35, 29, 0.07);
+  --shadow-pop: 0 2px 4px rgba(38, 35, 29, 0.08), 0 10px 28px rgba(38, 35, 29, 0.14);
+}

@@ -139,5 +139,22 @@ projects — do not touch them.
 - After adding a dep: `docker compose down -v && docker compose up -d --build`
   to drop the stale anonymous `node_modules` volume and repopulate it.
 
+## Design system — "Manila Archive"
+- Visual identity: filing-cabinet metaphor. Warm paper bg (`--paper`),
+  manila folder tabs, IBM Plex Mono for data/metadata/stamps, Libre Franklin
+  for body/display, navy (`--navy`) actions, stamp-red (`--stamp`) for the
+  "Shared" badge + danger. Tokens live in `src/theme.css` (`--*` custom
+  properties) — **never** hardcode hex values in page/component CSS.
+- Fonts load via `<link>` in `public/index.html` (Google Fonts:
+  Libre Franklin 400–700, IBM Plex Mono 400–600). No npm font packages.
+- Signature elements, all pure CSS: folder glyph with manila tab
+  (`.filelist-row-folder .filelist-icon::before/::after`), page glyph with
+  ruled lines (file rows), rotated rubber-stamp "Shared" badge
+  (`.filelist-badge`), ledger header row in mono caps.
+- CSS lives next to its component: `FileList.css`, `Breadcrumb.css`,
+  `Modal.css` are imported by their `.js`; pages keep page-specific rules in
+  `Drive.css` / `Shared.css` / `Login.css` / `Profile.css`. `theme.css` +
+  `index.css` are global.
+
 ## Scope
 - All work goes inside this directory only.

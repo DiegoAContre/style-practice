@@ -299,6 +299,7 @@ if (fRes.error) { setError(fRes.error.message); setLoading(false); return }
     <div className="shared-page">
       <header className="shared-header">
         <div className="shared-header-left">
+          <span className="shared-wordmark">my own drive</span>
           <button
             className="shared-up"
             disabled={path.length === 0}

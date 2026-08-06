@@ -1,0 +1,127 @@
+/* Modal — a filing card: paper surface, mono caps title, hairline rules. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(38, 35, 29, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-card {
+  background: var(--paper-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  width: 100%;
+  max-width: 440px;
+  padding: 1.25rem 1.5rem;
+  box-sizing: border-box;
+}
+.modal-title {
+  margin: 0 0 0.75rem 0;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.modal-body { margin-bottom: 1rem; color: var(--ink-soft); font-size: 0.9rem; }
+.modal-body strong { color: var(--ink); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--rule-dark);
+  border-radius: 4px;
+  background: var(--paper-card);
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+.modal-input:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(31, 58, 95, 0.14);
+}
+.modal-button {
+  background: var(--paper-card);
+  border: 1px solid var(--rule-dark);
+  border-radius: 4px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+.modal-button:hover { background: var(--navy-tint); border-color: var(--navy); color: var(--navy); }
+.modal-button:disabled { opacity: 0.5; cursor: default; }
+.modal-button-danger {
+  background: var(--stamp);
+  border-color: var(--stamp);
+  color: #fff;
+}
+.modal-button-danger:hover { background: #9c3622; border-color: #9c3622; color: #fff; }
+
+/* Share modal */
+.modal-share-add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.modal-share-username { flex: 1 1 12rem; }
+.modal-share-perm {
+  width: auto;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--rule-dark);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  background: var(--paper-card);
+  color: var(--ink);
+  flex: 0 0 auto;
+}
+.modal-share-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.modal-share-empty {
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+  margin: 0;
+}
+.modal-share-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.modal-share-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.modal-share-row-perm {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+}

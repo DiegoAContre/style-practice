@@ -60,7 +60,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={submit}>
-        <h1 className="login-title">my-own-drive</h1>
+        <h1 className="login-title">my own drive</h1>
         <h2 className="login-subtitle">{mode === 'signin' ? 'Sign in' : 'Create account'}</h2>
 
         <label className="login-field">
