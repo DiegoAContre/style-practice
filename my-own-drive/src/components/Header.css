@@ -73,7 +73,9 @@
   background: var(--paper-card);
 }
 .app-avatar-menu {
-  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.15s, visibility 0s 2.5s;
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -87,7 +89,12 @@
   z-index: 30;
 }
 .app-avatar:hover .app-avatar-menu,
-.app-avatar:focus-within .app-avatar-menu { display: flex; }
+.app-avatar:focus-within .app-avatar-menu {
+  display: flex;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.15s, visibility 0s;
+}
 .app-avatar-name {
   padding: 0.55rem 0.9rem;
   font-family: var(--font-mono);

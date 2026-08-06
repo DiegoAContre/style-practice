@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import './Header.css'
@@ -6,6 +6,10 @@ import './Header.css'
 export default function Header({ children }) {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  const isDrive = pathname.startsWith('/drive')
+  const isShared = pathname.startsWith('/shared')
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -20,8 +24,12 @@ export default function Header({ children }) {
       <div className="app-header-left">
         <span className="app-wordmark">my own drive</span>
         <nav className="app-nav">
-          <button className="app-nav-link" onClick={() => navigate('/drive')}>My Drive</button>
-          <button className="app-nav-link" onClick={() => navigate('/shared')}>Shared with me</button>
+          {!isShared && (
+            <button className="app-nav-link" onClick={() => navigate('/shared')}>Shared with me</button>
+          )}
+          {!isDrive && (
+            <button className="app-nav-link" onClick={() => navigate('/drive')}>My Drive</button>
+          )}
         </nav>
         {children}
       </div>

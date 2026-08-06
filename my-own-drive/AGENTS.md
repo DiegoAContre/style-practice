@@ -69,11 +69,13 @@ projects — do not touch them.
 
 ## Shared navbar (src/components/Header.js)
 - Used by Drive + Shared; takes the page's up button + breadcrumb as children
-  (rendered after the nav links). Left: wordmark + `My Drive` / `Shared with me`
-  nav links (plain text buttons via `useNavigate`). Right: avatar dropdown —
+  (rendered after the nav links). Left: wordmark + one nav link to the *other*
+  page (`useLocation`-gated: `/drive` shows `Shared with me`, `/shared` shows
+  `My Drive`). Right: avatar dropdown —
   `profile.avatar_url` img (falls back to a manila circle with the username
   initial if empty or on `img onerror`) opening a menu on wrapper `:hover` and
-  `:focus-within` (CSS-only, no JS): username label, Profile, Sign out
+  `:focus-within`; closing is deferred 2.5 s via a `visibility` transition
+  delay (pure CSS, no JS). Menu: username label, Profile, Sign out
   (stamp-colored). Header pulls `useAuth()` itself; pages have no header
   actions of their own anymore.
 
