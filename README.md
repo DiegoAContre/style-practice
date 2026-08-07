@@ -7,7 +7,7 @@
 ![Supabase](https://img.shields.io/badge/Supabase-3fcf8e?style=flat-square&logo=supabase&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ed?style=flat-square&logo=docker&logoColor=white)
 
-[Projects](#projects) • [moviedb](#moviedb) • [my-own-drive](#my-own-drive)
+[Projects](#projects) • [moviedb](#moviedb) • [my-own-drive](#my-own-drive) • [games](#games)
 
 </div>
 
@@ -19,10 +19,12 @@ A collection of self-contained frontend projects for practicing and applying CSS
 | --- |:--- | --- | --- |
 | <img src="./moviedb/public/favicon.svg" width="32px"/> | [moviedb](./moviedb) | Search any movie or show and find where to stream it | React · Vite · Vitest |
 | <img src="./my-own-drive/public/logo192.png" width="32px"/> | [my-own-drive](./my-own-drive) | Personal cloud storage, Google Drive–like | React · Supabase |
+| ♟️ | [games](./games) | Two build-free games: web chess and a pygame tic-tac-toe | jQuery 4.0 · pygame |
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/en/download) 20+ (22+ for `my-own-drive`)
+- [Python](https://www.python.org/downloads/) 3.8+ (for `tictactoe-tresenlinea`)
 - [Docker](https://www.docker.com/get-started/) _(optional, for containerized dev)_
 
 ## moviedb
@@ -41,3 +43,12 @@ Personal cloud storage app. React 19 (Create React App) frontend with [Supabase]
 - Email/password authentication with protected routes
 - File upload and browsing with folder navigation
 - User profiles with unique usernames
+
+## games
+
+A collection of small, self-contained games for practice. No shared dependencies, no build step — just open a file and play.
+
+- [chess-ajedrez](./games/chess-ajedrez): a click-to-move web chess game (plain HTML, CSS and JS + jQuery 4.0 from CDN) — just open `index.html`. Simplified rules: no check/checkmate detection, castling, en passant or promotion.
+- [tictactoe-tresenlinea](./games/tictactoe-tresenlinea): a single-file pygame tic-tac-toe (`main.py`) — local two-player or versus an unbeatable minimax AI.
+
+See [games/README.md](./games/README.md) for full setup and run instructions.
