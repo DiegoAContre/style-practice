@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajedrez Personal</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Ajedrez Premium</h1>
+            <p class="subtitle">Disfruta de una partida elegante y fluida</p>
+        </header>
+
+        <main class="game-container">
+            <!-- Tablero de ajedrez con coordenadas laterales y superiores/inferiores -->
+            <div class="chess-wrapper">
+                <div class="coordinate-labels files top">
+                    <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span>
+                </div>
+                <div class="board-flex-row">
+                    <div class="coordinate-labels ranks left">
+                        <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+                    </div>
+                    
+                    <div id="chessboard" class="chessboard">
+                        <!-- El tablero será generado dinámicamente con jQuery -->
+                    </div>
+
+                    <div class="coordinate-labels ranks right">
+                        <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+                    </div>
+                </div>
+                <div class="coordinate-labels files bottom">
+                    <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span>
+                </div>
+            </div>
+
+            <!-- Panel de información del juego -->
+            <aside class="info-panel">
+                <div class="panel-section player-card white active">
+                    <div class="player-avatar">W</div>
+                    <div class="player-details">
+                        <h3>Jugador Blanco</h3>
+                        <p class="status">Tu turno</p>
+                    </div>
+                    <div class="timer" id="timer-white">10:00</div>
+                </div>
+
+                <div class="panel-section game-status">
+                    <h3>Estado de la Partida</h3>
+                    <div id="status-message">La partida ha comenzado. Blancas mueven.</div>
+                    <div class="captured-pieces">
+                        <div class="captured-group white-captured" id="white-captured-list">
+                            <!-- Piezas blancas capturadas por las negras -->
+                        </div>
+                        <div class="captured-group black-captured" id="black-captured-list">
+                            <!-- Piezas negras capturadas por las blancas -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section player-card black">
+                    <div class="player-avatar">B</div>
+                    <div class="player-details">
+                        <h3>Jugador Negro</h3>
+                        <p class="status">Esperando...</p>
+                    </div>
+                    <div class="timer" id="timer-black">10:00</div>
+                </div>
+
+                <div class="panel-controls">
+                    <button id="btn-restart" class="btn btn-primary">Nueva Partida</button>
+                    <button id="btn-undo" class="btn btn-secondary">Deshacer Movimiento</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Referencia de jQuery relativa correcta -->
+    <script src="https://code.jquery.com/jquery-4.0.0.min.js" integrity="sha256-OaVG6prZf4v69dPg6PhVattBXkcOWQB62pdZ3ORyrao=" crossorigin="anonymous"></script>
+    <script src="logic.js"></script>
+</body>
+</html>

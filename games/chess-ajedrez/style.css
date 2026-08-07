@@ -1,0 +1,463 @@
+/* Variables de diseño con colores premium */
+:root {
+    --bg-dark: #121824;
+    --bg-panel: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --secondary: #475569;
+    --secondary-hover: #334155;
+    
+    /* Colores del tablero de ajedrez (Estilo Madera Clásica) */
+    --light-square: #f0d9b5;
+    --dark-square: #b58863;
+    
+    /* Colores para estados y resaltados */
+    --selected-square: rgba(247, 208, 2, 0.5); /* Amarillo translúcido */
+    --last-move: rgba(155, 199, 0, 0.41); /* Verde suave */
+    --possible-move: rgba(0, 0, 0, 0.15); /* Círculo gris */
+    --possible-capture: rgba(239, 68, 68, 0.4); /* Rojo suave */
+}
+
+/* Reinicio de estilos básicos */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(to right, #f1f5f9, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 5px;
+}
+
+header .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+/* Layout del juego */
+.game-container {
+    display: grid;
+    grid-template-columns: auto 380px;
+    gap: 30px;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 1024px) {
+    .game-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+/* Envoltorio del tablero y las coordenadas */
+.chess-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #151d2a;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+.board-flex-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Etiquetas de coordenadas (A-H y 1-8) */
+.coordinate-labels {
+    display: flex;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    user-select: none;
+}
+
+.coordinate-labels.files {
+    width: 520px; /* Tamaño del tablero */
+    justify-content: space-around;
+    padding: 8px 0;
+}
+
+.coordinate-labels.files span {
+    width: 65px; /* Debe coincidir con la casilla */
+    text-align: center;
+}
+
+.coordinate-labels.ranks {
+    flex-direction: column;
+    height: 520px; /* Tamaño del tablero */
+    justify-content: space-around;
+    width: 25px;
+    text-align: center;
+}
+
+.coordinate-labels.ranks span {
+    height: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.coordinate-labels.left {
+    padding-right: 10px;
+}
+
+.coordinate-labels.right {
+    padding-left: 10px;
+}
+
+/* Tablero de Ajedrez */
+.chessboard {
+    display: grid;
+    grid-template-columns: repeat(8, 65px);
+    grid-template-rows: repeat(8, 65px);
+    width: 520px;
+    height: 520px;
+    border: 4px solid #0f172a;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* Casillas */
+.square {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.square.light {
+    background-color: var(--light-square);
+}
+
+.square.dark {
+    background-color: var(--dark-square);
+}
+
+/* Estilos de las piezas con Unicode (Súper Estilizados) */
+.piece {
+    font-size: 3rem;
+    cursor: grab;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    transition: transform 0.15s ease, filter 0.15s ease;
+    user-select: none;
+}
+
+.piece:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}
+
+/* Clases específicas de colores para piezas */
+.piece.white-piece {
+    color: #ffffff;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+    /* Sutil borde oscuro para resaltar en casillas claras */
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.85);
+}
+
+.piece.black-piece {
+    color: #1a1a1a;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.7));
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.15);
+}
+
+/* Resaltados de interacción */
+.square.selected {
+    background-color: var(--selected-square) !important;
+}
+
+.square.last-move {
+    background-color: var(--last-move) !important;
+}
+
+/* Indicador de movimiento posible */
+.square.possible-move::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    background-color: var(--possible-move);
+    border-radius: 50%;
+    position: absolute;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Indicador de captura posible (en casilla ocupada) */
+.square.possible-capture::after {
+    content: '';
+    width: 52px;
+    height: 52px;
+    border: 4px solid var(--possible-capture);
+    border-radius: 50%;
+    position: absolute;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Panel Lateral de Información */
+.info-panel {
+    background-color: var(--bg-panel);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 380px;
+    height: 600px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 1024px) {
+    .info-panel {
+        width: 100%;
+        max-width: 520px;
+        height: auto;
+        margin: 0 auto;
+    }
+}
+
+/* Tarjeta de jugador (Turnos) */
+.player-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background-color: #1e293b;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.player-card.active {
+    background-color: #0f172a;
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+.player-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+}
+
+.player-card.white .player-avatar {
+    background-color: #ffffff;
+    color: #1e293b;
+}
+
+.player-card.black .player-avatar {
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #475569;
+}
+
+.player-details {
+    flex: 1;
+}
+
+.player-details h3 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.player-details .status {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.player-card.active .player-details .status {
+    color: var(--primary);
+}
+
+.timer {
+    font-family: monospace;
+    font-size: 1.25rem;
+    font-weight: bold;
+    background-color: #151d2a;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: #ef4444;
+}
+
+/* Estado de la Partida y Piezas Capturadas */
+.game-status {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid #334155;
+    border-bottom: 1px solid #334155;
+    padding: 16px 0;
+}
+
+.game-status h3 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+#status-message {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* Área de piezas capturadas */
+.captured-pieces {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.captured-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    min-height: 25px;
+    padding: 4px;
+    background-color: rgba(15, 23, 42, 0.4);
+    border-radius: 6px;
+}
+
+.captured-group .piece-small {
+    font-size: 1.3rem;
+    line-height: 1;
+    user-select: none;
+}
+
+/* Botones y Controles */
+.panel-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
+    flex: 1;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+    background-color: var(--secondary);
+    color: var(--text-main);
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-hover);
+}
+
+/* Adaptación responsive para pantallas pequeñas */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    .chess-wrapper {
+        padding: 10px;
+        border-radius: 8px;
+    }
+    .coordinate-labels.files {
+        width: 320px;
+    }
+    .coordinate-labels.files span {
+        width: 40px;
+    }
+    .coordinate-labels.ranks {
+        height: 320px;
+        width: 15px;
+    }
+    .coordinate-labels.ranks span {
+        height: 40px;
+    }
+    .coordinate-labels.left { padding-right: 5px; }
+    .coordinate-labels.right { padding-left: 5px; }
+    
+    .chessboard {
+        grid-template-columns: repeat(8, 40px);
+        grid-template-rows: repeat(8, 40px);
+        width: 320px;
+        height: 320px;
+    }
+    .piece {
+        font-size: 1.85rem;
+    }
+    .square.possible-move::after {
+        width: 12px;
+        height: 12px;
+    }
+    .square.possible-capture::after {
+        width: 32px;
+        height: 32px;
+        border-width: 3px;
+    }
+}
