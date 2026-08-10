@@ -22,7 +22,8 @@ projects — do not touch them.
   `supabase/fix-policies.sql` (idempotent reconciliation for an already-populated
   DB). `schema.sql` uses bare `create policy` and will raise `42710` on re-run —
   run it once. `fix-policies.sql` prefixes every policy with `drop policy if
-  exists` and is safe to re-run. Run both in the Supabase SQL editor
+  exists` and is safe to re-run. `supabase/rate-limit.sql` (per-user rate
+  limiter) is idempotent and safe to re-run. Run them in the Supabase SQL editor
   (Dashboard > SQL Editor). Switch to the `supabase` CLI once the schema starts
   changing in flight.
 - Auth keys go in `.env.local` as the **publishable/anon** key
@@ -66,6 +67,17 @@ projects — do not touch them.
   shared folders.
 - Storage bucket `drive-files` is **private**; object paths follow
   `{owner_id}/{file_id}/{name}`. Storage policies match the owner prefix.
+- **Rate limiting** (`supabase/rate-limit.sql`): `private.rate_limits`
+  fixed-window counter + `private.bump_rate(action, key, max, window_s)`
+  (atomic `on conflict ... where count < max`, raises `RATEL` when exceeded;
+  lazy 24 h sweep inside the function). Called at the top of the sharing/
+  download RPCs and via a `before insert on files` trigger
+  (`private.guard_file_upload`) — the upload cap rides on the row insert
+  because storage policies can't call security definer. Limits: share/unshare
+  30/min, resolve_user_by_username/usernames_for_users 60/min,
+  create_share_download_url 120/min, upload 60/min. Tier-1 hardening (auth
+  per-IP rate limits, storage max-file-size, signup domain restriction) is
+  dashboard-only and not in SQL.
 
 ## Shared navbar (src/components/Header.js)
 - Used by Drive + Shared; takes the page's up button + breadcrumb as children

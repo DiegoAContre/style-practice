@@ -18,8 +18,13 @@ Vercel (prod) as a plain CRA build.
 ### 1. Supabase project
 1. Create a project at [supabase.com](https://supabase.com).
 2. Dashboard > Storage > New bucket → name it `drive-files`, set **Private**.
-3. Dashboard > SQL Editor → paste `supabase/schema.sql` > Run. The file is
-   idempotent (drop-policy-then-create), safe to re-run.
+3. Dashboard > SQL Editor → run `supabase/schema.sql` once (re-running raises
+   `42710` on the bare `create policy` statements). Then run
+   `supabase/rate-limit.sql` and `supabase/fix-policies.sql` — both are
+   idempotent and safe to re-run.
+4. Dashboard > Authentication > Providers > Email → restrict signups to your
+   email domain. Dashboard > Storage > Settings → set Max Upload File Size to
+   50 MB. Dashboard > Authentication > Rate Limits → confirm per-IP limits.
 
 ### 2. Environment
 Copy `.env.local.example` to `.env.local` and fill in your Supabase credentials:

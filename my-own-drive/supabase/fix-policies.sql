@@ -146,6 +146,7 @@ declare
   v_owner uuid;
   v_out   public.shared_items;
 begin
+  perform private.bump_rate('share_item', (select auth.uid())::text, 30, 60);
   if p_permission not in ('view', 'edit') then
     raise exception 'invalid permission' using errcode = '23514';
   end if;
@@ -191,6 +192,7 @@ set search_path = public
 as $$
 declare v_owner uuid;
 begin
+  perform private.bump_rate('unshare_item', (select auth.uid())::text, 30, 60);
   if p_item_type = 'folder' then
     select owner_id into v_owner from public.folders where id = p_item_id;
   elsif p_item_type = 'file' then
@@ -244,6 +246,7 @@ language sql
 security definer
 set search_path = public
 as $$
+  select private.bump_rate('resolve_user_by_username', (select auth.uid())::text, 60, 60);
   select id from public.profiles where username = p_username;
 $$;
 revoke execute on function public.resolve_user_by_username(text)
@@ -258,6 +261,7 @@ language sql
 security definer
 set search_path = public
 as $$
+  select private.bump_rate('usernames_for_users', (select auth.uid())::text, 60, 60);
   select id, username from public.profiles where id = any(p_ids);
 $$;
 revoke execute on function public.usernames_for_users(uuid[])
@@ -279,6 +283,7 @@ declare
   v_path  text;
   v_url   text;
 begin
+  perform private.bump_rate('create_share_download_url', (select auth.uid())::text, 120, 60);
   select owner_id, storage_path into v_owner, v_path
     from public.files where id = p_file;
   if v_owner is null then
