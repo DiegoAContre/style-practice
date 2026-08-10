@@ -4,6 +4,9 @@ Personal cloud storage app (Google Drive–like). React (Create React App) +
 Supabase (database, storage, auth). Runs locally in Docker (dev) and deploys to
 Vercel (prod) as a plain CRA build.
 
+## Live
+👉 [own-drive.vercel.app/login](https://own-drive.vercel.app/login)
+
 ## Stack
 - **Frontend**: React 19, React Router v7 (`react-router-dom`)
 - **Backend**: Supabase (Postgres + Auth + Storage)
