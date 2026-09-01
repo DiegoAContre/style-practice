@@ -87,7 +87,7 @@ export default function FileList({
               onClick={(e) => onRowClick(e, f.id, 'folder', !selectedFolders.has(f.id))}
               aria-label={`Select ${f.name}`}
             />
-            <span className="filelist-icon" aria-hidden>📁</span>
+            <span className="filelist-icon" aria-hidden>▰</span>
             <span className="filelist-name-cell">
               <button className="filelist-name filelist-name-button" onClick={() => onOpenFolder(f)}>{f.name}</button>
               {!isOwner && <span className="filelist-badge" title="Shared with you">Shared</span>}
@@ -119,7 +119,7 @@ export default function FileList({
               onClick={(e) => onRowClick(e, f.id, 'file', !selectedFiles.has(f.id))}
               aria-label={`Select ${f.name}`}
             />
-            <span className="filelist-icon" aria-hidden>📄</span>
+            <span className="filelist-icon" aria-hidden>▤</span>
             <span className="filelist-name-cell">
               <span className="filelist-name">{f.name}</span>
               {!isOwner && <span className="filelist-badge" title="Shared with you">Shared</span>}
