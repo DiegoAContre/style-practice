@@ -120,6 +120,7 @@ export default function Login() {
               required minLength={6}
               autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
             />
+            <EyeToggle show={showPassword} onClick={() => setShowPassword(s => !s)} />
           </div>
         </label>
 
@@ -133,7 +134,8 @@ export default function Login() {
                 onChange={e => setConfirmPassword(e.target.value)}
                 required minLength={6}
                 autoComplete="new-password"
-              />              
+              />
+              <EyeToggle show={showConfirm} onClick={() => setShowConfirm(s => !s)} />
             </div>
           </label>
         )}
